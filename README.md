@@ -1,6 +1,7 @@
-# Mesa: NTP-Based Command & Control (C2) Framework
+# goMESA: NTP-Based Command & Control (C2) Framework
 
-Mesa is a Command and Control (C2) framework that utilizes the Network Time Protocol (NTP) as its transport mechanism. This project serves as a demonstration of how legitimate protocols can be repurposed for covert communications, providing an educational tool for network security professionals and researchers.
+goMESA is a Command and Control (C2) framework that utilizes the Network Time Protocol (NTP) as its transport mechanism. 
+It is inspired by [Mesa](https://github.com/d3adzo/mesa), the original "C2 over NTP" tool, but I've fully rewritten it in Go, added a bubbleTea TUI, as well as a few extra features described below.
 
 ## Features
 
