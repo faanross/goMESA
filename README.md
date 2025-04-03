@@ -1,3 +1,155 @@
+# Mesa: NTP-Based Command & Control (C2) Framework
+
+Mesa is a Command and Control (C2) framework that utilizes the Network Time Protocol (NTP) as its transport mechanism. This project serves as a demonstration of how legitimate protocols can be repurposed for covert communications, providing an educational tool for network security professionals and researchers.
+
+## Features
+
+- **NTP-Based Communication**: Uses NTP (UDP port 123) as a cover channel for C2 communications
+- **Cross-Platform Agents**: Works on Windows, Linux, and macOS
+- **Legitimate NTP Server**: Functions as a real NTP time server, providing cover for C2 traffic
+- **Interactive CLI**: Intuitive command-line interface for controlling agents
+- **Database Storage**: Supports both SQLite (portable) and MySQL backends
+- **Agent Grouping**: Group agents by OS or custom service tags
+- **XOR and AES Encryption**: Provides basic payload encryption
+
+## Architecture
+
+Mesa consists of two primary components:
+
+1. **C2 Server**: Written in Go, the server component listens for NTP traffic, handles agent communication, and provides an interactive interface for operators.
+
+2. **Agents**: Cross-platform implants that establish communication with the C2 server using NTP packets, execute commands, and return results.
+
+## Prerequisites
+
+- Go 1.16 or higher
+- Required Go packages (installed automatically via `go get`):
+    - github.com/google/gopacket
+    - github.com/c-bata/go-prompt
+    - github.com/olekukonko/tablewriter
+    - github.com/fatih/color
+    - github.com/go-sql-driver/mysql (for MySQL support)
+    - github.com/mattn/go-sqlite3 (for SQLite support)
+
+- For agent functionality:
+    - Windows: No additional dependencies
+    - Linux: libpcap-dev (`apt-get install libpcap-dev`)
+    - macOS: libpcap (`brew install libpcap`)
+
+## Building
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/mesa.git
+   cd mesa
+   ```
+
+2. Build the server and agents:
+   ```
+   make
+   ```
+
+   This will create the following binaries in the `bin` directory:
+    - `mesa-server`: The C2 server
+    - `linux-agent`: Agent for Linux systems
+    - `windows-agent.exe`: Agent for Windows systems
+    - `macos-agent`: Agent for macOS systems
+
+3. Customize the server IP for agents:
+
+   Edit the `Makefile` and change the `SERVER_IP` variable to your C2 server's IP address:
+   ```
+   SERVER_IP=your.server.ip.address
+   ```
+
+## Usage
+
+### Starting the Server
+
+Run the server with:
+
+```
+sudo ./bin/mesa-server
+```
+
+By default, the server uses SQLite for data storage. To use MySQL:
+
+```
+sudo ./bin/mesa-server -db mysql -user yourusername
+```
+
+### Deploying Agents
+
+Transfer the appropriate agent binary to the target system and execute it with administrator/root privileges:
+
+- **Windows**:
+  ```
+  windows-agent.exe
+  ```
+
+- **Linux**:
+  ```
+  sudo ./linux-agent
+  ```
+
+- **macOS**:
+  ```
+  sudo ./macos-agent
+  ```
+
+### Server Commands
+
+The server features a multi-level command interface:
+
+#### Main Prompt
+
+- `agents`: Display connected agents
+- `db`: Enter the database management prompt
+- `interact <type> <id>`: Interact with agents (types: a[gent], o[s], s[ervice])
+- `help`: Display help information
+- `exit`: Exit the program, saving the state
+- `shutdown`: Exit, kill all agents, and clean the database
+
+#### DB Prompt
+
+- `agents`: List all agent entries
+- `group <ip> <os/service> <name>`: Add identifiers to agents (supports IP ranges)
+- `removeall`: Remove all agents from the database
+- `meta`: Describe the database schema
+- `help`: Display help information
+- `back`: Return to the main prompt
+
+#### Interact Prompt
+
+- `agents`: Display agents under the current filter
+- `ping`: Ping selected agent(s)
+- `kill`: Send kill command to agent(s)
+- `cmd`: Enter the command prompt
+- `help`: Display help information
+- `back`: Return to the main prompt
+
+#### Command Prompt
+
+- `<command>`: Send the specified command to the agent(s)
+- `help`: Display help information
+- `back`: Return to the interact prompt
+
+## Security Considerations
+
+This tool is intended for educational and authorized security testing purposes only. Be aware that:
+
+1. NTP traffic is not typically inspected by firewalls, which is what makes it an effective covert channel.
+2. The framework performs actual NTP server functions, providing plausible deniability.
+3. The current implementation includes basic encryption, but may not be sufficient for highly secure environments.
+
+## Legal Disclaimer
+
+This software is provided for educational and research purposes only. The author does not take responsibility for any misuse of this software. Only use Mesa in environments where you have explicit permission to conduct security testing.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
 # Background Information
 
 ## The Foundation of Internet Timekeeping
