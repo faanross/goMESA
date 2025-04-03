@@ -1,14 +1,14 @@
 # goMESA: NTP-Based Command & Control (C2) Framework
 
 goMESA is a Command and Control (C2) framework that utilizes the Network Time Protocol (NTP) as its transport mechanism. 
-It is inspired by [Mesa](https://github.com/d3adzo/mesa), the original "C2 over NTP" tool, but I've fully rewritten it in Go, added a bubbleTea TUI, as well as a few extra features described below.
+It is inspired by [Mesa](https://github.com/d3adzo/mesa), the original "C2 over NTP" tool, but I've fully rewritten it in Go, added a bubbleTea TUI, as well as added a few extra features described below.
 
 ## Features
 
-- **NTP-Based Communication**: Uses NTP (UDP port 123) as a cover channel for C2 communications
+- **NTP-Based Communication**: Uses NTP (UDP port 123) as a covert channel for C2 communications
 - **Cross-Platform Agents**: Works on Windows, Linux, and macOS
 - **Legitimate NTP Server**: Functions as a real NTP time server, providing cover for C2 traffic
-- **Interactive CLI**: Intuitive command-line interface for controlling agents
+- **Interactive TUI**: Intuitive terminal user interface 
 - **Database Storage**: Supports both SQLite (portable) and MySQL backends
 - **Agent Grouping**: Group agents by OS or custom service tags
 - **XOR and AES Encryption**: Provides basic payload encryption
