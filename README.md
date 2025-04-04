@@ -24,13 +24,8 @@ Mesa consists of two primary components:
 ## Prerequisites
 
 - Go 1.16 or higher
-- Required Go packages (installed automatically via `go get`):
-    - github.com/google/gopacket
-    - github.com/c-bata/go-prompt
-    - github.com/olekukonko/tablewriter
-    - github.com/fatih/color
-    - github.com/go-sql-driver/mysql (for MySQL support)
-    - github.com/mattn/go-sqlite3 (for SQLite support)
+- For required Go packages see `go.mod` + install automatically via `go get`
+
 
 - For agent functionality:
     - Windows: No additional dependencies
@@ -41,8 +36,8 @@ Mesa consists of two primary components:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/mesa.git
-   cd mesa
+   git clone https://github.com/faanross/goMESA.git
+   cd goMESA
    ```
 
 2. Build the server and agents:

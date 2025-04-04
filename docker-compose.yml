@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  mesa-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mesa-server
+    container_name: mesa-server
+    restart: unless-stopped
+    ports:
+      - "123:123/udp"
+    volumes:
+      - ./data:/app/data
+    cap_add:
+      - NET_ADMIN  # Required for packet capture
+    network_mode: host  # Easier for NTP server operation
+    command: ["-db", "sqlite", "-path", "/app/data/mesa.db"]
+
+  # Optional MySQL service if you prefer it over SQLite
+  mysql:
+    image: mysql:8.0
+    container_name: mesa-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: mesapassword
+      MYSQL_DATABASE: mesaC2
+      MYSQL_USER: mesa
+      MYSQL_PASSWORD: mesapassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # To use MySQL instead of SQLite, run with:
+  # docker-compose up mysql mesa-server-mysql
+  mesa-server-mysql:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mesa-server
+    container_name: mesa-server-mysql
+    restart: unless-stopped
+    ports:
+      - "123:123/udp"
+    depends_on:
+      - mysql
+    cap_add:
+      - NET_ADMIN
+    network_mode: host
+    command: ["-db", "mysql", "-user", "mesa", "-password", "mesapassword"]
+    profiles:
+      - mysql  # Only starts when explicitly requested
+
+volumes:
+  data:
+  mysql-data:
