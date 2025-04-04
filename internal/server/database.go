@@ -391,7 +391,7 @@ func (d *Database) AddCommand(agentID, content string) (int64, error) {
 }
 
 // UpdateCommandOutput updates a command's output and sets its status to executed
-func (d *Database) UpdateCommandOutput(commandID int64, output string) error {
+func (d *Database) UpdateCommandOutput(commandID string, output string) error {
 	query := "UPDATE commands SET output = ?, status = ? WHERE id = ?"
 	statusExecuted := common.CommandStatusExecuted // Use constant from common
 
