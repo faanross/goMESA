@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Introduction on goMESA Documentation</title>
+    <link>http://localhost:1313/goMESA/docs/introduction/</link>
+    <description>Recent content in Introduction on goMESA Documentation</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <atom:link href="http://localhost:1313/goMESA/docs/introduction/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Overview of goMESA</title>
+      <link>http://localhost:1313/goMESA/docs/introduction/overview/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/goMESA/docs/introduction/overview/</guid>
+      <description>&lt;h2 id=&#34;overview&#34;&gt;&#xA;  Overview&#xA;  &lt;a class=&#34;anchor&#34; href=&#34;#overview&#34;&gt;#&lt;/a&gt;&#xA;&lt;/h2&gt;&#xA;&lt;p&gt;goMESA is an educational Command and Control (C2) framework designed to demonstrate how legitimate network protocols can be repurposed for covert communications. Specifically, it utilizes the Network Time Protocol (NTP) as its transport mechanism, embedding command and control traffic within seemingly normal time synchronization packets.&lt;/p&gt;&#xA;&lt;p&gt;It is based on &lt;a href=&#34;https://github.com/d3adzo/mesa&#34;&gt;mesa&lt;/a&gt;, with the following notable changes:&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Entire application is rewritten in Golang + integration of concurrency&lt;/li&gt;&#xA;&lt;li&gt;SQLite instead of MySQL as a simpler option&lt;/li&gt;&#xA;&lt;li&gt;Vue.js Web Client UI&lt;/li&gt;&#xA;&lt;li&gt;Docker support&lt;/li&gt;&#xA;&lt;li&gt;AES-256-GCM as a more secure encryption method&lt;/li&gt;&#xA;&lt;li&gt;Comprehensive documentation&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;&lt;a href=&#34;../core_concepts/&#34;&gt;NEXT PAGE&lt;/a&gt;&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Core Components</title>
+      <link>http://localhost:1313/goMESA/docs/introduction/core_concepts/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/goMESA/docs/introduction/core_concepts/</guid>
+      <description>&lt;h2 id=&#34;core-components&#34;&gt;&#xA;  Core Components&#xA;  &lt;a class=&#34;anchor&#34; href=&#34;#core-components&#34;&gt;#&lt;/a&gt;&#xA;&lt;/h2&gt;&#xA;&lt;p&gt;goMESA consists of three main components:&lt;/p&gt;&#xA;&lt;ol&gt;&#xA;&lt;li&gt;&lt;strong&gt;C2 Server&lt;/strong&gt;: Runs on an operator-controlled system. It acts as a fully functional NTP server (responding to legitimate time requests) while also listening for and managing connections from goMESA agents. It provides an interface for the operator to interact with agents and stores agent information and command history in a database.&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Agent&lt;/strong&gt;: Runs on target systems (Windows, Linux, macOS). It mimics a standard NTP client, configuring the host system to use the C2 server for time synchronization. Covertly, it uses this NTP communication channel to receive commands, execute them, and send back results.&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Client UI&lt;/strong&gt;: A Vue.js client establishes a persistent WebSocket connection to the goMESA server (or a dedicated web API layer), allowing for real-time, bidirectional communication.&lt;/li&gt;&#xA;&lt;/ol&gt;&#xA;&lt;p&gt;By operating under the guise of essential NTP traffic, goMESA aims to evade detection by network security monitoring tools that may not closely inspect UDP port 123 traffic.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Features</title>
+      <link>http://localhost:1313/goMESA/docs/introduction/features/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/goMESA/docs/introduction/features/</guid>
+      <description>&lt;h2 id=&#34;features&#34;&gt;&#xA;  Features&#xA;  &lt;a class=&#34;anchor&#34; href=&#34;#features&#34;&gt;#&lt;/a&gt;&#xA;&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;NTP-Based Covert Channel&lt;/strong&gt;: Uses UDP port 123 for all C2 communications.&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Functional NTP Server&lt;/strong&gt;: The C2 server provides legitimate time synchronization, enhancing plausible deniability.&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Cross-Platform Agents&lt;/strong&gt;: Supports Windows, Linux, and macOS target systems.&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Database Backend&lt;/strong&gt;: Supports SQLite (default, portable).&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Agent Grouping&lt;/strong&gt;: Manage agents efficiently by OS or custom service tags.&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Encryption&lt;/strong&gt;: Offers basic XOR obfuscation and stronger AES-256-GCM encryption for payloads.&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Packet-Level Operations&lt;/strong&gt;: Utilizes raw packet capture (libpcap/gopacket) for stealthy agent operation.&lt;/li&gt;&#xA;&lt;li&gt;&lt;strong&gt;Containerization Support&lt;/strong&gt;: Docker and Docker Compose files available for easier deployment.&lt;/li&gt;&#xA;&lt;/ul&gt;</description>
+    </item>
+  </channel>
+</rss>

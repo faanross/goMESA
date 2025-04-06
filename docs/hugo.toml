@@ -1,0 +1,43 @@
+# Base URL for your site when deployed
+baseURL = "https://faanross.github.io/goMESA/"
+# Title of your site
+title = "goMESA Documentation"
+# Language code
+languageCode = "en-us"
+
+# Enable Git info (optional, useful for 'last modified' dates)
+enableGitInfo = true
+
+# --- Hugo Modules Configuration ---
+# This section tells Hugo to download and use the Book theme
+[module]
+[[module.imports]]
+path = "github.com/alex-shpak/hugo-book"
+
+# --- Book Theme Specific Parameters ---
+[params]
+# (Optional) Repository link. Useful for 'Edit this page' functionality if using default path.
+# BookRepo = "https://github.com/faanross/goMESA/"
+
+# (Optional) Path to the docs content section in your repository for the 'Edit this page' link.
+# Defaults to "<BookRepo>/edit/<branch>/<BookContentDir>".
+# We are in the 'docs' subdir, so content is at the root relative to 'docs'.
+BookContentDir = "content" # Let theme find content relative to the Hugo site root (./docs/content)
+BookEditPath = "edit/main/docs/content" # Specify path from repo root: edit/BRANCH/path/to/hugo/content
+
+# Enable dark mode toggle
+BookTheme = "auto" # Options: "light", "dark", "auto"
+
+# Set to false to disable search function.
+BookSearch = true
+
+# Path separator for menu sections. Use "/" for Book theme style.
+BookMenuBundleSeparator = "/" # Use / for path separation in menu
+
+# (Optional) Enable table of contents feature for pages.
+# BookToC = true
+
+# (Optional) If you have sections, you can make them collapsed by default.
+# BookSection = "*" # Apply to all sections
+# [params.BookSection."Introduction"] # Apply to specific section by path
+#   BookCollapseSection = true
