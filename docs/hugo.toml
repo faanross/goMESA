@@ -17,7 +17,7 @@ path = "github.com/alex-shpak/hugo-book"
 # --- Book Theme Specific Parameters ---
 [params]
 # (Optional) Repository link. Useful for 'Edit this page' functionality if using default path.
-# BookRepo = "https://github.com/faanross/goMESA/"
+# BookRepo = "https://github.com/faanross/goMESA/docs/"
 
 # (Optional) Path to the docs content section in your repository for the 'Edit this page' link.
 # Defaults to "<BookRepo>/edit/<branch>/<BookContentDir>".

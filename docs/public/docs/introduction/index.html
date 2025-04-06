@@ -3,13 +3,33 @@
 <head><script src="/goMESA/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=goMESA/livereload" data-no-instant defer></script>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="This section provides guides for setting up and running goMESA.">
+<meta name="description" content="
+  1.1. Overview
+  #
+
+goMESA is an educational Command and Control (C2) framework designed to demonstrate how legitimate network protocols can be repurposed for covert communications. Specifically, it utilizes the Network Time Protocol (NTP) as its transport mechanism, embedding command and control traffic within seemingly normal time synchronization packets.
+It is based on mesa, with the following notable changes:
+
+Entire application is rewritten in Golang &#43; integration of concurrency
+SQLite instead of MySQL as a simpler option
+Vue.js Web Client UI
+Docker support
+AES-256-GCM as a more secure encryption method
+Comprehensive documentation
+
+
+  1.2. Core Components
+  #
+
+goMESA consists of three main components:">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
 <meta name="color-scheme" content="light dark"><meta property="og:url" content="http://localhost:1313/goMESA/docs/introduction/">
   <meta property="og:site_name" content="goMESA Documentation">
   <meta property="og:title" content="Introduction">
-  <meta property="og:description" content="This section provides guides for setting up and running goMESA.">
+  <meta property="og:description" content="1.1. Overview # goMESA is an educational Command and Control (C2) framework designed to demonstrate how legitimate network protocols can be repurposed for covert communications. Specifically, it utilizes the Network Time Protocol (NTP) as its transport mechanism, embedding command and control traffic within seemingly normal time synchronization packets.
+It is based on mesa, with the following notable changes:
+Entire application is rewritten in Golang &#43; integration of concurrency SQLite instead of MySQL as a simpler option Vue.js Web Client UI Docker support AES-256-GCM as a more secure encryption method Comprehensive documentation 1.2. Core Components # goMESA consists of three main components:">
   <meta property="og:locale" content="en_us">
   <meta property="og:type" content="website">
 <title>Introduction | goMESA Documentation</title>
@@ -18,7 +38,7 @@
 <link rel="canonical" href="http://localhost:1313/goMESA/docs/introduction/">
 <link rel="stylesheet" href="/goMESA/book.min.434035e7885c7f5d12818bd9f111cf1a0925c6fb78382667381c3d5eda3fb4f1.css" integrity="sha256-Q0A154hcf10SgYvZ8RHPGgklxvt4OCZnOBw9Xto/tPE=" crossorigin="anonymous">
   <script defer src="/goMESA/fuse.min.js"></script>
-  <script defer src="/goMESA/en.search.min.494d48e3b86578ecda869e493d3650e9c6fd02b57af838fd32b9b7ce719b9fbc.js" integrity="sha256-SU1I47hleOzahp5JPTZQ6cb9ArV6&#43;Dj9Mrm3znGbn7w=" crossorigin="anonymous"></script>
+  <script defer src="/goMESA/en.search.min.1314f88105c5e182bfb463b613b77cd9ffb8057f1f113d1f3dde8992baa4c3fc.js" integrity="sha256-ExT4gQXF4YK/tGO2E7d82f&#43;4BX8fET0fPd6Jkrqkw/w=" crossorigin="anonymous"></script>
 <link rel="alternate" type="application/rss+xml" href="http://localhost:1313/goMESA/docs/introduction/index.xml" title="goMESA Documentation" />
 <!--
 Made with Book Theme
@@ -77,15 +97,7 @@ https://github.com/alex-shpak/hugo-book
           
   <ul>
     
-      
-        <li>
-          
-  
-  
-
-  
-    <a href="/goMESA/docs/introduction/overview/" class="">Overview of goMESA</a>
-  
+  </ul>
 
         </li>
       
@@ -97,24 +109,11 @@ https://github.com/alex-shpak/hugo-book
   
 
   
-    <a href="/goMESA/docs/introduction/core_concepts/" class="">Core Components</a>
+    <a href="/goMESA/docs/theory_concepts/" class="">Theory and Concepts</a>
   
 
-        </li>
-      
-    
-      
-        <li>
           
-  
-  
-
-  
-    <a href="/goMESA/docs/introduction/features/" class="">Features</a>
-  
-
-        </li>
-      
+  <ul>
     
   </ul>
 
@@ -128,11 +127,16 @@ https://github.com/alex-shpak/hugo-book
   
 
   
-    <a href="/goMESA/docs/api-reference/" class="">API Reference</a>
+    <a href="/goMESA/docs/architecture/" class="">Architecture</a>
   
 
           
   <ul>
+    
+  </ul>
+
+        </li>
+      
     
       
         <li>
@@ -141,11 +145,47 @@ https://github.com/alex-shpak/hugo-book
   
 
   
-    <a href="/goMESA/docs/api-reference/overview/" class="">Overview</a>
+    <a href="/goMESA/docs/setup/" class="">Setup and Installation</a>
   
+
+          
+  <ul>
+    
+  </ul>
 
         </li>
       
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/goMESA/docs/guide/" class="">User Guide</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/goMESA/docs/features/" class="">Features</a>
+  
+
+          
+  <ul>
     
   </ul>
 
@@ -201,7 +241,13 @@ https://github.com/alex-shpak/hugo-book
   <aside class="hidden clearfix">
     
   
-<nav id="TableOfContents"></nav>
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#11-overview">1.1. Overview</a></li>
+    <li><a href="#12-core-components">1.2. Core Components</a></li>
+    <li><a href="#13-features">1.3. Features</a></li>
+  </ul>
+</nav>
 
 
 
@@ -212,7 +258,45 @@ https://github.com/alex-shpak/hugo-book
 
       
       
-  <article class="markdown book-article"><p>This section provides guides for setting up and running goMESA.</p>
+  <article class="markdown book-article"><h2 id="11-overview">
+  1.1. Overview
+  <a class="anchor" href="#11-overview">#</a>
+</h2>
+<p>goMESA is an educational Command and Control (C2) framework designed to demonstrate how legitimate network protocols can be repurposed for covert communications. Specifically, it utilizes the Network Time Protocol (NTP) as its transport mechanism, embedding command and control traffic within seemingly normal time synchronization packets.</p>
+<p>It is based on <a href="https://github.com/d3adzo/mesa">mesa</a>, with the following notable changes:</p>
+<ul>
+<li>Entire application is rewritten in Golang + integration of concurrency</li>
+<li>SQLite instead of MySQL as a simpler option</li>
+<li>Vue.js Web Client UI</li>
+<li>Docker support</li>
+<li>AES-256-GCM as a more secure encryption method</li>
+<li>Comprehensive documentation</li>
+</ul>
+<h2 id="12-core-components">
+  1.2. Core Components
+  <a class="anchor" href="#12-core-components">#</a>
+</h2>
+<p>goMESA consists of three main components:</p>
+<ol>
+<li><strong>C2 Server</strong>: Runs on an operator-controlled system. It acts as a fully functional NTP server (responding to legitimate time requests) while also listening for and managing connections from goMESA agents. It provides an interface for the operator to interact with agents and stores agent information and command history in a database.</li>
+<li><strong>Agent</strong>: Runs on target systems (Windows, Linux, macOS). It mimics a standard NTP client, configuring the host system to use the C2 server for time synchronization. Covertly, it uses this NTP communication channel to receive commands, execute them, and send back results.</li>
+<li><strong>Client UI</strong>: A Vue.js client establishes a persistent WebSocket connection to the goMESA server (or a dedicated web API layer), allowing for real-time, bidirectional communication.</li>
+</ol>
+<p>By operating under the guise of essential NTP traffic, goMESA aims to evade detection by network security monitoring tools that may not closely inspect UDP port 123 traffic.</p>
+<h2 id="13-features">
+  1.3. Features
+  <a class="anchor" href="#13-features">#</a>
+</h2>
+<ul>
+<li><strong>NTP-Based Covert Channel</strong>: Uses UDP port 123 for all C2 communications.</li>
+<li><strong>Functional NTP Server</strong>: The C2 server provides legitimate time synchronization, enhancing plausible deniability.</li>
+<li><strong>Cross-Platform Agents</strong>: Supports Windows, Linux, and macOS target systems.</li>
+<li><strong>Database Backend</strong>: Supports SQLite (default, portable).</li>
+<li><strong>Agent Grouping</strong>: Manage agents efficiently by OS or custom service tags.</li>
+<li><strong>Encryption</strong>: Offers basic XOR obfuscation and stronger AES-256-GCM encryption for payloads.</li>
+<li><strong>Packet-Level Operations</strong>: Utilizes raw packet capture (libpcap/gopacket) for stealthy agent operation.</li>
+<li><strong>Built-in Persistence</strong>: Provides OS-specific methods for agents to automatically restart and maintain C2 communication after reboots.</li>
+</ul>
 </article>
  
       
@@ -252,7 +336,13 @@ https://github.com/alex-shpak/hugo-book
       <div class="book-toc-content">
         
   
-<nav id="TableOfContents"></nav>
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#11-overview">1.1. Overview</a></li>
+    <li><a href="#12-core-components">1.2. Core Components</a></li>
+    <li><a href="#13-features">1.3. Features</a></li>
+  </ul>
+</nav>
 
 
  

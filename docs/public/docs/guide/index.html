@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+<head><script src="/goMESA/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=goMESA/livereload" data-no-instant defer></script>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="
+  5.1. Running the Server
+  #
+
+Start the server binary with root/administrator privileges. Specify the port for the web interface (e.g., -port 8080) and optionally the path for the SQLite database (-path ./data/gomesa.db).
+# Example: Run natively, web UI on 8080, DB in ./data/
+sudo mkdir -p ./data
+sudo ./bin/goMESA-server -port 8080 -path ./data/gomesa.db
+
+This starts the NTP listener on UDP 123.
+This starts the Web Server on TCP port 8080 (or the specified port).
+It creates/opens the gomesa.db SQLite file in the ./data/ directory.
+
+
+  5.2. Accessing the Web Interface
+  #
+
+Open your web browser and navigate to the address where the server is running, including the specified web port (e.g., http://&lt;server_ip&gt;:8080 or http://localhost:8080).">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#343a40">
+<meta name="color-scheme" content="light dark"><meta property="og:url" content="http://localhost:1313/goMESA/docs/guide/">
+  <meta property="og:site_name" content="goMESA Documentation">
+  <meta property="og:title" content="User Guide">
+  <meta property="og:description" content="5.1. Running the Server # Start the server binary with root/administrator privileges. Specify the port for the web interface (e.g., -port 8080) and optionally the path for the SQLite database (-path ./data/gomesa.db).
+# Example: Run natively, web UI on 8080, DB in ./data/ sudo mkdir -p ./data sudo ./bin/goMESA-server -port 8080 -path ./data/gomesa.db This starts the NTP listener on UDP 123. This starts the Web Server on TCP port 8080 (or the specified port). It creates/opens the gomesa.db SQLite file in the ./data/ directory. 5.2. Accessing the Web Interface # Open your web browser and navigate to the address where the server is running, including the specified web port (e.g., http://&lt;server_ip&gt;:8080 or http://localhost:8080).">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="website">
+<title>User Guide | goMESA Documentation</title>
+<link rel="icon" href="/goMESA/favicon.png" >
+<link rel="manifest" href="/goMESA/manifest.json">
+<link rel="canonical" href="http://localhost:1313/goMESA/docs/guide/">
+<link rel="stylesheet" href="/goMESA/book.min.434035e7885c7f5d12818bd9f111cf1a0925c6fb78382667381c3d5eda3fb4f1.css" integrity="sha256-Q0A154hcf10SgYvZ8RHPGgklxvt4OCZnOBw9Xto/tPE=" crossorigin="anonymous">
+  <script defer src="/goMESA/fuse.min.js"></script>
+  <script defer src="/goMESA/en.search.min.1314f88105c5e182bfb463b613b77cd9ffb8057f1f113d1f3dde8992baa4c3fc.js" integrity="sha256-ExT4gQXF4YK/tGO2E7d82f&#43;4BX8fET0fPd6Jkrqkw/w=" crossorigin="anonymous"></script>
+<link rel="alternate" type="application/rss+xml" href="http://localhost:1313/goMESA/docs/guide/index.xml" title="goMESA Documentation" />
+<!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+  
+</head>
+<body dir="ltr">
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      <div class="book-menu-content">
+        
+  <nav>
+<h2 class="book-brand">
+  <a class="flex align-center" href="/goMESA/"><span>goMESA Documentation</span>
+  </a>
+</h2>
+
+
+<div class="book-search hidden">
+  <input type="text" id="book-search-input" placeholder="Search" aria-label="Search" maxlength="64" data-hotkeys="s/" />
+  <div class="book-search-spinner hidden"></div>
+  <ul id="book-search-results"></ul>
+</div>
+<script>document.querySelector(".book-search").classList.remove("hidden")</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <ul>
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/goMESA/docs/introduction/" class="">Introduction</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/goMESA/docs/theory_concepts/" class="">Theory and Concepts</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/goMESA/docs/architecture/" class="">Architecture</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/goMESA/docs/setup/" class="">Setup and Installation</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/goMESA/docs/guide/" class="active">User Guide</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+      
+        <li>
+          
+  
+  
+
+  
+    <a href="/goMESA/docs/features/" class="">Features</a>
+  
+
+          
+  <ul>
+    
+  </ul>
+
+        </li>
+      
+    
+  </ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script>
+
+
+ 
+      </div>
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/goMESA/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <h3>User Guide</h3>
+
+  <label for="toc-control">
+    
+    <img src="/goMESA/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden clearfix">
+    
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#51-running-the-server">5.1. Running the Server</a></li>
+    <li><a href="#52-accessing-the-web-interface">5.2. Accessing the Web Interface</a></li>
+    <li><a href="#53-deploying-agents">5.3. Deploying Agents</a></li>
+  </ul>
+</nav>
+
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown book-article"><h2 id="51-running-the-server">
+  5.1. Running the Server
+  <a class="anchor" href="#51-running-the-server">#</a>
+</h2>
+<p>Start the server binary with root/administrator privileges. Specify the port for the web interface (e.g., <code>-port 8080</code>) and optionally the path for the SQLite database (<code>-path ./data/gomesa.db</code>).</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-Bash" data-lang="Bash"><span style="display:flex;"><span><span style="color:#75715e"># Example: Run natively, web UI on 8080, DB in ./data/</span>
+</span></span><span style="display:flex;"><span>sudo mkdir -p ./data
+</span></span><span style="display:flex;"><span>sudo ./bin/goMESA-server -port <span style="color:#ae81ff">8080</span> -path ./data/gomesa.db
+</span></span></code></pre></div><ul>
+<li>This starts the NTP listener on UDP 123.</li>
+<li>This starts the Web Server on TCP port 8080 (or the specified port).</li>
+<li>It creates/opens the <code>gomesa.db</code> SQLite file in the <code>./data/</code> directory.</li>
+</ul>
+<h2 id="52-accessing-the-web-interface">
+  5.2. Accessing the Web Interface
+  <a class="anchor" href="#52-accessing-the-web-interface">#</a>
+</h2>
+<p>Open your web browser and navigate to the address where the server is running, including the specified web port (e.g., <code>http://&lt;server_ip&gt;:8080</code> or <code>http://localhost:8080</code>).</p>
+<h2 id="53-deploying-agents">
+  5.3. Deploying Agents
+  <a class="anchor" href="#53-deploying-agents">#</a>
+</h2>
+<ol>
+<li>Copy the appropriate compiled agent binary (<code>windows-agent.exe</code>, <code>linux-agent</code>, <code>macos-agent</code>) to the target machine.</li>
+<li>Execute the agent with <strong>administrator or root privileges</strong>.</li>
+<li>Once the agent successfully modifies the NTP settings and sends its first <code>PING</code> beacon, it should appear in the <strong>Agents List</strong> in the web interface, typically marked as &ldquo;Alive&rdquo;.</li>
+</ol>
+<p>TODO: Create a more comprehensive user guide with example actions, workflows, troubleshooting etc</p>
+<p><a href="../features/">NEXT</a></p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+
+
+  <script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){if(window.getSelection().toString())return;e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script>
+
+
+ 
+        
+      </footer>
+
+      
+  
+  <div class="book-comments">
+
+</div>
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+    <aside class="book-toc">
+      <div class="book-toc-content">
+        
+  
+<nav id="TableOfContents">
+  <ul>
+    <li><a href="#51-running-the-server">5.1. Running the Server</a></li>
+    <li><a href="#52-accessing-the-web-interface">5.2. Accessing the Web Interface</a></li>
+    <li><a href="#53-deploying-agents">5.3. Deploying Agents</a></li>
+  </ul>
+</nav>
+
+
+ 
+      </div>
+    </aside>
+    
+  </main>
+
+  
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+

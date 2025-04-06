@@ -7,19 +7,26 @@ import (
 	"goMESA/internal/server/api"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func main() {
 	// Parse command line flags
 	var dbPath string
 	var apiPort int
-	flag.StringVar(&dbPath, "path", "mesa.db", "Path to SQLite database file")
+	flag.StringVar(&dbPath, "path", "./data/gomesa.db", "Path to SQLite database file")
 	flag.IntVar(&apiPort, "port", 8080, "Port for the web API server")
 	flag.Parse()
 
 	// Validate dbPath
 	if dbPath == "" {
 		log.Fatalf("Database path cannot be empty. Please use the -path flag.")
+	}
+
+	// Ensure the directory for the database exists
+	dataDir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		log.Fatalf("Failed to create data directory '%s': %v", dataDir, err)
 	}
 
 	// Check if running as root/administrator (required for NTP server raw socket/port 123)
