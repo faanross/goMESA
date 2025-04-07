@@ -14,7 +14,7 @@ func main() {
 	// Parse command line flags
 	var dbPath string
 	var apiPort int
-	flag.StringVar(&dbPath, "path", "./data/gomesa.db", "Path to SQLite database file")
+	flag.StringVar(&dbPath, "path", "../data/gomesa.db", "Path to SQLite database file")
 	flag.IntVar(&apiPort, "port", 8080, "Port for the web API server")
 	flag.Parse()
 

