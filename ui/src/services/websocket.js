@@ -42,11 +42,14 @@ export function connectWebSocket(url = 'ws://localhost:8080/ws') {
 
     // Connection event handlers
     socket.onopen = () => {
+        console.log("=== WEBSOCKET CONNECTED ===");
+        console.log("Connected to:", socket.url);
         connectionState.value = 'connected';
         reconnectAttempts = 0; // Reset reconnect counter on success
         addNotification('Connected to server', 'success');
 
         // Request initial data
+        console.log("Sending initial getAgents request");
         sendMessage({ type: 'getAgents' });
     };
 
@@ -69,8 +72,15 @@ export function connectWebSocket(url = 'ws://localhost:8080/ws') {
     };
 
     socket.onmessage = (event) => {
+        // Add this logging block
+        console.log("=== WEBSOCKET MESSAGE RECEIVED ===");
+        console.log("Raw data:", event.data);
+
         try {
             const message = JSON.parse(event.data);
+            // Add this detailed logging
+            console.log("Parsed message:", JSON.stringify(message, null, 2));
+            console.log("Message type:", message.type);
             handleMessage(message);
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);
@@ -80,12 +90,15 @@ export function connectWebSocket(url = 'ws://localhost:8080/ws') {
 
 // Function to send a message to the server
 export function sendMessage(message) {
+    console.log("=== SENDING MESSAGE ===");
+    console.log("Message content:", JSON.stringify(message, null, 2));
+
     if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(message));
+        console.log("Message sent successfully");
         return true;
     } else {
-        console.error('WebSocket not connected');
-        // Don't notify on every failed send - prevents spamming
+        console.error('WebSocket not connected, readyState:', socket ? socket.readyState : 'socket is null');
         return false;
     }
 }
@@ -110,8 +123,21 @@ export function addMessageListener(type, callback) {
 // Function to handle incoming messages
 function handleMessage(message) {
     // Process message based on type
+
     switch (message.type) {
         case 'agentUpdate':
+            console.log("agentUpdate received with agents:", message.agents);
+            console.log("Agents data structure:", message.agents ?
+                `Array with ${message.agents.length} agents` : "No agents or invalid structure");
+
+            // Check for specific fields to help with debugging
+            if (message.agents && message.agents.length > 0) {
+                console.log("First agent sample:", JSON.stringify(message.agents[0], null, 2));
+                console.log("Agent IDs:", message.agents.map(a => a.id || "No ID"));
+                console.log("Agent OS values:", message.agents.map(a => a.os || "No OS"));
+                console.log("Agent status values:", message.agents.map(a => a.status || "No status"));
+            }
+
             updateAgents(message.agents);
             break;
 
@@ -155,13 +181,40 @@ function handleMessage(message) {
     }
 }
 
-// Function to update agents list
 function updateAgents(newAgents) {
+    console.log("=== UPDATING AGENTS ===");
+    console.log("Current agents count:", agents.length);
+    console.log("New agents count:", newAgents ? newAgents.length : 0);
+
     // Clear current agents
     agents.splice(0, agents.length);
 
-    // Add new agents
-    agents.push(...newAgents);
+    // Add new agents with normalized property names
+    if (Array.isArray(newAgents)) {
+        newAgents.forEach(agent => {
+            // Create a new object with capitalized property names
+            const normalizedAgent = {
+                ID: agent.id,
+                IP: agent.ip,
+                OS: agent.os,
+                Service: agent.service,
+                Status: agent.status,
+                LastSeen: agent.last_seen,
+                FirstSeen: agent.first_seen,
+                NetworkAdapter: agent.network_adapter,
+                CommandResponse: agent.command_response
+            };
+            agents.push(normalizedAgent);
+        });
+    }
+
+    console.log("Added new agents, total count:", agents.length);
+    if (agents.length > 0) {
+        console.log("First agent properties:",
+            "ID=", agents[0].ID,
+            "OS=", agents[0].OS,
+            "Status=", agents[0].Status);
+    }
 }
 
 // Function to add command to history
@@ -259,6 +312,7 @@ function notifyGroupResult(message) {
 
 // Command execution functions
 export function executeCommand(agentId, command) {
+    console.log(`CLIENT → SERVER: Sending command "${command}" to agent ${agentId}`);
     return sendMessage({
         type: 'executeCommand',
         agentId,

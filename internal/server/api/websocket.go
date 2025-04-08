@@ -172,6 +172,8 @@ func (s *WebSocketServer) handleClientMessage(conn *websocket.Conn, message []by
 	case "getAgents":
 		s.handleGetAgents(conn)
 	case "executeCommand":
+		log.Printf("SERVER RECEIVED: Command request for agent %s: '%s'",
+			data["agentId"].(string), data["command"].(string))
 		s.handleExecuteCommand(conn, data)
 	case "pingAgent":
 		s.handlePingAgent(conn, data)

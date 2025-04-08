@@ -286,15 +286,18 @@ func (s *NTPServer) QueueCommand(agentID, command string) error {
 	s.commandMutex.Lock()
 	defer s.commandMutex.Unlock()
 
+	log.Printf("SERVER QUEUE: Adding command '%s' to queue for agent %s", command, agentID)
+
 	if _, exists := s.commandQueue[agentID]; !exists {
 		s.commandQueue[agentID] = []string{}
 	}
 
 	// Add to database
-	_, err := s.db.AddCommand(agentID, command)
+	commandID, err := s.db.AddCommand(agentID, command)
 	if err != nil {
 		return fmt.Errorf("failed to add command to database: %v", err)
 	}
+	log.Printf("SERVER DB: Command added with ID %d", commandID)
 
 	// Add to queue
 	s.commandQueue[agentID] = append(s.commandQueue[agentID], command)
@@ -373,6 +376,7 @@ func (s *NTPServer) sendPendingCommands(agentID string) {
 		// Get the next command
 		command := commands[0]
 		s.commandQueue[agentID] = commands[1:]
+		log.Printf("SERVER → AGENT: Sending command '%s' to agent %s", command, agentID)
 
 		// If queue is empty, delete it
 		if len(s.commandQueue[agentID]) == 0 {
@@ -381,6 +385,8 @@ func (s *NTPServer) sendPendingCommands(agentID string) {
 
 		// Send the command
 		go s.sendCommandToAgent(agentID, command)
+	} else {
+		log.Printf("SERVER NOTE: No pending commands for agent %s", agentID)
 	}
 }
 
