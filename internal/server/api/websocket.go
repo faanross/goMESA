@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -53,6 +54,8 @@ func (s *WebSocketServer) handleBroadcasts() {
 	for {
 		message := <-s.broadcast
 		s.mutex.Lock()
+		clientCount := len(s.clients)
+		log.Printf("SERVER BROADCAST: Sending message to %d connected clients", clientCount)
 		for client := range s.clients {
 			err := client.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
@@ -77,16 +80,23 @@ func (s *WebSocketServer) sendPeriodicAgentUpdates() {
 			continue
 		}
 
+		// Log detailed agent count and IDs
+		agentIDs := make([]string, len(agents))
+		for i, agent := range agents {
+			agentIDs[i] = agent.ID
+		}
+		log.Printf("SERVER PROCESSING: Preparing to broadcast %d agents: %v", len(agents), agentIDs)
+
 		message := map[string]interface{}{
 			"type":   "agentUpdate",
 			"agents": agents,
 		}
 
 		jsonData, err := json.Marshal(message)
-		if err != nil {
-			log.Printf("Error marshaling agent update: %v", err)
-			continue
-		}
+		// Add pretty-printing for better readability
+		var prettyJSON bytes.Buffer
+		json.Indent(&prettyJSON, jsonData, "", "  ")
+		log.Printf("SERVER → CLIENT: Broadcasting WebSocket message:\n%s", prettyJSON.String())
 
 		s.broadcast <- jsonData
 	}
@@ -100,6 +110,8 @@ func (s *WebSocketServer) HandleWebSocket(w http.ResponseWriter, r *http.Request
 		return
 	}
 	defer conn.Close()
+
+	log.Printf("CLIENT CONNECTED: New WebSocket client from %s", r.RemoteAddr)
 
 	// Register new client
 	s.mutex.Lock()

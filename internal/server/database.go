@@ -2,6 +2,7 @@ package server
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -306,6 +307,10 @@ func (d *Database) GetAllAgents() ([]common.Agent, error) {
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating agent rows: %w", err)
 	}
+
+	// Log the full agent data being returned from the database
+	agentsJSON, _ := json.MarshalIndent(agents, "", "  ")
+	log.Printf("DATABASE → SERVER: GetAllAgents returning: %s", string(agentsJSON))
 
 	return agents, nil
 }
