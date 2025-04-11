@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"goMESA/internal/server/https_server"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,11 +15,12 @@ import (
 
 // APIServer represents the HTTP API server
 type APIServer struct {
-	router     *mux.Router
-	db         *server.Database
-	ntpServer  *server.NTPServer
-	wsServer   *WebSocketServer
-	httpServer *http.Server
+	router      *mux.Router
+	db          *server.Database
+	ntpServer   *server.NTPServer
+	wsServer    *WebSocketServer
+	httpServer  *http.Server
+	httpsServer *https_server.HTTPSServer
 }
 
 // NewAPIServer creates a new API server
@@ -27,6 +29,13 @@ func NewAPIServer(db *server.Database, ntpServer *server.NTPServer, port int) *A
 
 	wsServer := NewWebSocketServer(db, ntpServer)
 
+	// Create HTTPS server
+	httpsServer := https_server.NewHTTPSServer(
+		"server.crt",  // Default TLS certificate path
+		"server.key",  // Default TLS private key path
+		"0.0.0.0:443", // Default HTTPS port
+	)
+	
 	apiServer := &APIServer{
 		router:    router,
 		db:        db,
@@ -36,6 +45,7 @@ func NewAPIServer(db *server.Database, ntpServer *server.NTPServer, port int) *A
 			Addr:    ":" + strconv.Itoa(port),
 			Handler: router,
 		},
+		httpsServer: httpsServer,
 	}
 
 	// Set up routes
