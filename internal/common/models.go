@@ -50,3 +50,8 @@ const (
 	CommandOutput     = "COMO" // Command output
 	CommandWebConnect = "WCON" // Web connection for reflective loading
 )
+
+// WebConnectPayload represents the data needed for reflective loading
+type WebConnectPayload struct {
+	ServerURL string `json:"server_url"` // URL of the HTTPS server to connect to
+}
