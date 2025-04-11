@@ -378,3 +378,8 @@ func (s *HTTPSServer) Stop() error {
 	s.running = false
 	return err
 }
+
+// GetListenAddr returns the server's listen address
+func (s *HTTPSServer) GetListenAddr() string {
+	return s.listenAddr
+}

