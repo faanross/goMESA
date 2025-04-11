@@ -158,7 +158,7 @@ func (d *Database) AddAgent(agentID, networkAdapter string) error {
 		// Log the error but allow ntp_server to continue processing packet
 		log.Printf("Error in AddAgent for %s: %v", agentID, err)
 		// Return the error if upstream needs to know
-		// return fmt.Errorf("failed to add or update agent %s: %w", agentID, err)
+		// return fmt.Errorf("failed to add or update agent_env %s: %w", agentID, err)
 		return nil // Or return nil to not disrupt ntp_server flow? Depends on desired behavior.
 		// Let's return nil for now, assuming logging is sufficient.
 	}
@@ -167,33 +167,33 @@ func (d *Database) AddAgent(agentID, networkAdapter string) error {
 	return nil
 }
 
-// UpdateAgentStatus updates an agent's status and last_seen time
+// UpdateAgentStatus updates an agent_env's status and last_seen time
 func (d *Database) UpdateAgentStatus(agentID string, status string) error {
 	query := "UPDATE agents SET status = ?, last_seen = STRFTIME('%Y-%m-%d %H:%M:%f', 'now') WHERE agent_id = ?"
 	result, err := d.db.Exec(query, status, agentID)
 	if err != nil {
-		return fmt.Errorf("failed to update status for agent %s: %w", agentID, err)
+		return fmt.Errorf("failed to update status for agent_env %s: %w", agentID, err)
 	}
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		// This might not be an error if the agent just connected and AddAgent hasn't finished yet
+		// This might not be an error if the agent_env just connected and AddAgent hasn't finished yet
 		// log.Printf("Agent %s not found for status update (might be expected during initial connection)", agentID)
 		return nil // Or return a specific "not found" error if needed upstream
 	}
 	return nil
 }
 
-// UpdateAgentGroup assigns a service/group tag to a specific agent
+// UpdateAgentGroup assigns a service/group tag to a specific agent_env
 func (d *Database) UpdateAgentGroup(agentID, groupName string) error {
 	// Assuming 'service' column is used for grouping
 	query := "UPDATE agents SET service = ? WHERE agent_id = ?"
 	result, err := d.db.Exec(query, groupName, agentID)
 	if err != nil {
-		return fmt.Errorf("failed to update group for agent %s: %w", agentID, err)
+		return fmt.Errorf("failed to update group for agent_env %s: %w", agentID, err)
 	}
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		return fmt.Errorf("agent %s not found for group update", agentID)
+		return fmt.Errorf("agent_env %s not found for group update", agentID)
 	}
 	log.Printf("Agent %s assigned to group '%s'", agentID, groupName)
 	return nil
@@ -221,7 +221,7 @@ func (d *Database) SetMissingAgents() error {
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected > 0 {
-		log.Printf("Marked %d agent(s) as MIA", rowsAffected)
+		log.Printf("Marked %d agent_env(s) as MIA", rowsAffected)
 	}
 	return nil
 }
@@ -229,18 +229,18 @@ func (d *Database) SetMissingAgents() error {
 // startMissingAgentChecker runs SetMissingAgents periodically
 func (d *Database) startMissingAgentChecker(interval time.Duration) {
 	if interval <= 0 {
-		log.Println("Missing agent checker disabled (interval zero or negative)")
+		log.Println("Missing agent_env checker disabled (interval zero or negative)")
 		return
 	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	log.Printf("Starting missing agent checker (interval: %s)", interval)
+	log.Printf("Starting missing agent_env checker (interval: %s)", interval)
 	for range ticker.C {
 		// Error is logged within SetMissingAgents
 		_ = d.SetMissingAgents()
 	}
-	log.Println("Missing agent checker stopped.")
+	log.Println("Missing agent_env checker stopped.")
 }
 
 // scanAgent is a helper to scan a row into a common.Agent struct
@@ -296,19 +296,19 @@ func (d *Database) GetAllAgents() ([]common.Agent, error) {
 		agent, err := scanAgent(rows)
 		if err != nil {
 			// Log the specific error detail but continue if possible?
-			log.Printf("Error scanning agent row: %v", err)
+			log.Printf("Error scanning agent_env row: %v", err)
 			// Decide: return error immediately or try to return partial results?
 			// Returning immediately is usually safer.
-			return nil, fmt.Errorf("failed to scan agent row: %w", err)
+			return nil, fmt.Errorf("failed to scan agent_env row: %w", err)
 		}
 		agents = append(agents, agent)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating agent rows: %w", err)
+		return nil, fmt.Errorf("error iterating agent_env rows: %w", err)
 	}
 
-	// Log the full agent data being returned from the database
+	// Log the full agent_env data being returned from the database
 	agentsJSON, _ := json.MarshalIndent(agents, "", "  ")
 	log.Printf("DATABASE → SERVER: GetAllAgents returning: %s", string(agentsJSON))
 
@@ -348,14 +348,14 @@ func (d *Database) GetAgentsByGroup(groupType, value string) ([]common.Agent, er
 	for rows.Next() {
 		agent, err := scanAgent(rows)
 		if err != nil {
-			log.Printf("Error scanning grouped agent row: %v", err)
-			return nil, fmt.Errorf("failed to scan grouped agent row: %w", err)
+			log.Printf("Error scanning grouped agent_env row: %v", err)
+			return nil, fmt.Errorf("failed to scan grouped agent_env row: %w", err)
 		}
 		agents = append(agents, agent)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating grouped agent rows: %w", err)
+		return nil, fmt.Errorf("error iterating grouped agent_env rows: %w", err)
 	}
 
 	return agents, nil
@@ -368,20 +368,20 @@ func (d *Database) RemoveAllAgents() error {
 	if err != nil {
 		return fmt.Errorf("failed to remove all agents: %w", err)
 	}
-	log.Println("Removed all agent records from the database.")
+	log.Println("Removed all agent_env records from the database.")
 	// Optionally VACUUM to reclaim space, but can be slow
 	// _, _ = d.db.Exec("VACUUM")
 	return nil
 }
 
-// AddCommand adds a new command to the database for a specific agent
+// AddCommand adds a new command to the database for a specific agent_env
 func (d *Database) AddCommand(agentID, content string) (int64, error) {
 	query := "INSERT INTO commands (agent_id, content, status) VALUES (?, ?, ?)"
 	statusSent := common.CommandStatusSent
 
 	result, err := d.db.Exec(query, agentID, content, statusSent)
 	if err != nil {
-		return 0, fmt.Errorf("failed to add command for agent %s: %w", agentID, err)
+		return 0, fmt.Errorf("failed to add command for agent_env %s: %w", agentID, err)
 	}
 
 	id, err := result.LastInsertId()
@@ -413,7 +413,7 @@ func (d *Database) UpdateCommandOutput(commandID string, output string) error {
 	return nil
 }
 
-// GetCommandHistory returns the command history for a specific agent
+// GetCommandHistory returns the command history for a specific agent_env
 func (d *Database) GetCommandHistory(agentID string) ([]common.Command, error) {
 	query := `
 		SELECT id, agent_id, content, timestamp, status, output
@@ -423,7 +423,7 @@ func (d *Database) GetCommandHistory(agentID string) ([]common.Command, error) {
 	`
 	rows, err := d.db.Query(query, agentID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query command history for agent %s: %w", agentID, err)
+		return nil, fmt.Errorf("failed to query command history for agent_env %s: %w", agentID, err)
 	}
 	defer rows.Close()
 

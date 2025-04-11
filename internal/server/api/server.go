@@ -118,14 +118,14 @@ func (s *APIServer) handleGetAgents(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(agents)
 }
 
-// handleGetAgent returns a specific agent
+// handleGetAgent returns a specific agent_env
 func (s *APIServer) handleGetAgent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	agentID := vars["id"]
 
 	agents, err := s.db.GetAgentsByGroup("agent_id", agentID)
 	if err != nil {
-		http.Error(w, "Failed to get agent: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to get agent_env: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (s *APIServer) handleGetAgent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(agents[0])
 }
 
-// handleGetAgentCommands returns commands for a specific agent
+// handleGetAgentCommands returns commands for a specific agent_env
 func (s *APIServer) handleGetAgentCommands(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	agentID := vars["id"]
@@ -187,7 +187,7 @@ func (s *APIServer) handleCreateCommand(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(response)
 }
 
-// handlePingAgent sends a ping to an agent
+// handlePingAgent sends a ping to an agent_env
 func (s *APIServer) handlePingAgent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	agentID := vars["id"]
@@ -212,7 +212,7 @@ func (s *APIServer) handlePingAgent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// handleKillAgent sends a kill command to an agent
+// handleKillAgent sends a kill command to an agent_env
 func (s *APIServer) handleKillAgent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	agentID := vars["id"]
@@ -237,7 +237,7 @@ func (s *APIServer) handleKillAgent(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// handleGroupAgent assigns a group/service to an agent
+// handleGroupAgent assigns a group/service to an agent_env
 func (s *APIServer) handleGroupAgent(w http.ResponseWriter, r *http.Request) {
 	var requestData struct {
 		AgentID   string `json:"agentId"`

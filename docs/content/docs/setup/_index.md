@@ -75,15 +75,15 @@ The `Makefile` automates the Go compilation process.
 * **Build the Agents:**
     * **Linux Agent:**
         ```bash
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.serverIP=YOUR_SERVER_IP" -o ./bin/linux-agent ./cmd/agent/agent.go
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.serverIP=YOUR_SERVER_IP" -o ./bin/linux-agent_env ./cmd/agent_env/agent_env.go
         ```
     * **Windows Agent:**
         ```bash
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.serverIP=YOUR_SERVER_IP" -o ./bin/windows-agent.exe ./cmd/agent/agent.go
+        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.serverIP=YOUR_SERVER_IP" -o ./bin/windows-agent_env.exe ./cmd/agent_env/agent_env.go
         ```
     * **macOS Agent:**
         ```bash
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.serverIP=YOUR_SERVER_IP" -o ./bin/macos-agent ./cmd/agent/agent.go
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.serverIP=YOUR_SERVER_IP" -o ./bin/macos-agent_env ./cmd/agent_env/agent_env.go
         ```
 
 

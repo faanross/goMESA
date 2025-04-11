@@ -1,9 +1,9 @@
-// Package common contains shared code for both server and agent
+// Package common contains shared code for both server and agent_env
 package common
 
 import "time"
 
-// Agent represents a connected agent
+// Agent represents a connected agent_env
 type Agent struct {
 	ID              string    `json:"id"`
 	IP              string    `json:"ip"`
@@ -16,7 +16,7 @@ type Agent struct {
 	CommandResponse string    `json:"command_response"` // Holds the latest command response
 }
 
-// Command represents a command sent to an agent
+// Command represents a command sent to an agent_env
 type Command struct {
 	ID        string    `json:"id"`
 	AgentID   string    `json:"agent_id"`
@@ -34,7 +34,7 @@ const (
 	CommandStatusFailed   = "FAILED"
 )
 
-// AgentStatus represents the status of an agent
+// AgentStatus represents the status of an agent_env
 const (
 	AgentStatusAlive   = "ALIVE"
 	AgentStatusMissing = "MIA"

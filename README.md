@@ -50,9 +50,9 @@ An educational Command & Control (C2) framework leveraging the Network Time Prot
 
 3. Build the agents for your target platforms:
    ```bash
-   GOOS=windows GOARCH=amd64 go build -o agents/windows-agent.exe cmd/agent/main.go
-   GOOS=linux GOARCH=amd64 go build -o agents/linux-agent cmd/agent/main.go
-   GOOS=darwin GOARCH=amd64 go build -o agents/macos-agent cmd/agent/main.go
+   GOOS=windows GOARCH=amd64 go build -o agents/windows-agent_env.exe cmd/agent_env/main.go
+   GOOS=linux GOARCH=amd64 go build -o agents/linux-agent_env cmd/agent_env/main.go
+   GOOS=darwin GOARCH=amd64 go build -o agents/macos-agent_env cmd/agent_env/main.go
    ```
 
 ### Running the Server

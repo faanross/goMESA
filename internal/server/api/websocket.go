@@ -45,7 +45,7 @@ func (s *WebSocketServer) Start() {
 	// Start the broadcast handler
 	go s.handleBroadcasts()
 
-	// Start periodic agent updates
+	// Start periodic agent_env updates
 	go s.sendPeriodicAgentUpdates()
 }
 
@@ -68,7 +68,7 @@ func (s *WebSocketServer) handleBroadcasts() {
 	}
 }
 
-// sendPeriodicAgentUpdates sends agent updates to clients
+// sendPeriodicAgentUpdates sends agent_env updates to clients
 func (s *WebSocketServer) sendPeriodicAgentUpdates() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -80,7 +80,7 @@ func (s *WebSocketServer) sendPeriodicAgentUpdates() {
 			continue
 		}
 
-		// Log detailed agent count and IDs
+		// Log detailed agent_env count and IDs
 		agentIDs := make([]string, len(agents))
 		for i, agent := range agents {
 			agentIDs[i] = agent.ID
@@ -118,7 +118,7 @@ func (s *WebSocketServer) HandleWebSocket(w http.ResponseWriter, r *http.Request
 	s.clients[conn] = true
 	s.mutex.Unlock()
 
-	// Send initial agent list
+	// Send initial agent_env list
 	agents, err := s.db.GetAllAgents()
 	if err != nil {
 		log.Printf("Error fetching initial agents: %v", err)
@@ -130,7 +130,7 @@ func (s *WebSocketServer) HandleWebSocket(w http.ResponseWriter, r *http.Request
 
 		jsonData, err := json.Marshal(message)
 		if err != nil {
-			log.Printf("Error marshaling initial agent update: %v", err)
+			log.Printf("Error marshaling initial agent_env update: %v", err)
 		} else {
 			conn.WriteMessage(websocket.TextMessage, jsonData)
 		}
@@ -172,7 +172,7 @@ func (s *WebSocketServer) handleClientMessage(conn *websocket.Conn, message []by
 	case "getAgents":
 		s.handleGetAgents(conn)
 	case "executeCommand":
-		log.Printf("SERVER RECEIVED: Command request for agent %s: '%s'",
+		log.Printf("SERVER RECEIVED: Command request for agent_env %s: '%s'",
 			data["agentId"].(string), data["command"].(string))
 		s.handleExecuteCommand(conn, data)
 	case "pingAgent":
@@ -202,14 +202,14 @@ func (s *WebSocketServer) handleGetAgents(conn *websocket.Conn) {
 
 	jsonData, err := json.Marshal(response)
 	if err != nil {
-		log.Printf("Error marshaling agent response: %v", err)
+		log.Printf("Error marshaling agent_env response: %v", err)
 		return
 	}
 
 	conn.WriteMessage(websocket.TextMessage, jsonData)
 }
 
-// handleExecuteCommand executes a command on an agent
+// handleExecuteCommand executes a command on an agent_env
 func (s *WebSocketServer) handleExecuteCommand(conn *websocket.Conn, data map[string]interface{}) {
 	agentID, ok := data["agentId"].(string)
 	if !ok {
@@ -253,7 +253,7 @@ func (s *WebSocketServer) handleExecuteCommand(conn *websocket.Conn, data map[st
 	s.broadcast <- jsonData
 }
 
-// handlePingAgent sends a ping to an agent
+// handlePingAgent sends a ping to an agent_env
 func (s *WebSocketServer) handlePingAgent(conn *websocket.Conn, data map[string]interface{}) {
 	agentID, ok := data["agentId"].(string)
 	if !ok {
@@ -286,7 +286,7 @@ func (s *WebSocketServer) handlePingAgent(conn *websocket.Conn, data map[string]
 	conn.WriteMessage(websocket.TextMessage, jsonData)
 }
 
-// handleKillAgent sends a kill command to an agent
+// handleKillAgent sends a kill command to an agent_env
 func (s *WebSocketServer) handleKillAgent(conn *websocket.Conn, data map[string]interface{}) {
 	agentID, ok := data["agentId"].(string)
 	if !ok {
@@ -322,7 +322,7 @@ func (s *WebSocketServer) handleKillAgent(conn *websocket.Conn, data map[string]
 	s.broadcast <- jsonData
 }
 
-// handleGroupAgent assigns a group/service to an agent
+// handleGroupAgent assigns a group/service to an agent_env
 func (s *WebSocketServer) handleGroupAgent(conn *websocket.Conn, data map[string]interface{}) {
 	agentID, ok := data["agentId"].(string)
 	if !ok {
@@ -361,7 +361,7 @@ func (s *WebSocketServer) handleGroupAgent(conn *websocket.Conn, data map[string
 
 	conn.WriteMessage(websocket.TextMessage, jsonData)
 
-	// Trigger an agent list update
+	// Trigger an agent_env list update
 	go s.handleGetAgents(conn)
 }
 

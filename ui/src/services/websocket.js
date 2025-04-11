@@ -132,7 +132,7 @@ function handleMessage(message) {
 
             // Check for specific fields to help with debugging
             if (message.agents && message.agents.length > 0) {
-                console.log("First agent sample:", JSON.stringify(message.agents[0], null, 2));
+                console.log("First agent_env sample:", JSON.stringify(message.agents[0], null, 2));
                 console.log("Agent IDs:", message.agents.map(a => a.id || "No ID"));
                 console.log("Agent OS values:", message.agents.map(a => a.os || "No OS"));
                 console.log("Agent status values:", message.agents.map(a => a.status || "No status"));
@@ -210,7 +210,7 @@ function updateAgents(newAgents) {
 
     console.log("Added new agents, total count:", agents.length);
     if (agents.length > 0) {
-        console.log("First agent properties:",
+        console.log("First agent_env properties:",
             "ID=", agents[0].ID,
             "OS=", agents[0].OS,
             "Status=", agents[0].Status);
