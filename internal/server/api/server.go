@@ -35,7 +35,7 @@ func NewAPIServer(db *server.Database, ntpServer *server.NTPServer, port int) *A
 		"server.key",  // Default TLS private key path
 		"0.0.0.0:443", // Default HTTPS port
 	)
-	
+
 	apiServer := &APIServer{
 		router:    router,
 		db:        db,
@@ -83,6 +83,13 @@ func (s *APIServer) setupRoutes() {
 func (s *APIServer) Start() error {
 	// Start the WebSocket server
 	s.wsServer.Start()
+
+	// Start the HTTPS server
+	if err := s.httpsServer.Start(); err != nil {
+		log.Printf("Warning: Failed to start HTTPS server: %v", err)
+		// Continue anyway, as this is not critical
+	}
+	log.Println("Starting HTTPS server.")
 
 	log.Printf("API Server starting on %s", s.httpServer.Addr)
 	return s.httpServer.ListenAndServe()
