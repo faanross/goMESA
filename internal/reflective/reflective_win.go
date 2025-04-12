@@ -13,8 +13,6 @@ import (
 
 var kernel32DLL = windows.NewLazyDLL("kernel32.dll")
 
-// Add these structures and constants for reflective loading
-
 // PE structures
 type IMAGE_DOS_HEADER struct {
 	Magic    uint16     // Magic number (MZ)
@@ -135,6 +133,20 @@ const (
 // WindowsReflectiveLoader implements ReflectiveLoader for Windows
 type WindowsReflectiveLoader struct{}
 
+type IMAGE_BASE_RELOCATION struct {
+	VirtualAddress uint32 // RVA of the page this block applies to
+	SizeOfBlock    uint32 // Total size of this relocation block (including header)
+}
+
+// Add this to your structure definitions
+type IMAGE_IMPORT_DESCRIPTOR struct {
+	OriginalFirstThunk uint32 // RVA to Import Lookup Table
+	TimeDateStamp      uint32 // Time/date stamp
+	ForwarderChain     uint32 // Forwarder chain
+	Name               uint32 // RVA to DLL name
+	FirstThunk         uint32 // RVA to Import Address Table
+}
+
 // NewReflectiveLoader creates a new platform-specific implementation
 func NewReflectiveLoader() ReflectiveLoader {
 	return &WindowsReflectiveLoader{}
@@ -148,6 +160,10 @@ func (l *WindowsReflectiveLoader) IsSupported() bool {
 // LoadAndExecuteDLL implements ReflectiveLoader.LoadAndExecuteDLL for Windows
 func (l *WindowsReflectiveLoader) LoadAndExecuteDLL(dllBytes []byte, functionName string) (bool, error) {
 	// This simply delegates to your existing implementation
+
+	fmt.Printf("REFLECTIVE-DEBUG-1: Starting reflective loading of function '%s'\n", functionName)
+	fmt.Printf("REFLECTIVE-DEBUG-2: DLL size: %d bytes\n", len(dllBytes))
+	
 	return reflectivelyLoadDLL(dllBytes, functionName)
 }
 
@@ -310,10 +326,10 @@ func reflectivelyLoadDLL(dllBytes []byte, functionName string) (bool, error) {
 
 	if importDirRVA != 0 {
 		importDescPtr := allocBase + uintptr(importDirRVA)
-		importDescSize := unsafe.Sizeof(windows.ImageImportDescriptor{})
+		importDescSize := unsafe.Sizeof(IMAGE_IMPORT_DESCRIPTOR{})
 
 		for i := 0; ; i++ {
-			importDesc := (*windows.ImageImportDescriptor)(unsafe.Pointer(importDescPtr + uintptr(i)*importDescSize))
+			importDesc := (*IMAGE_IMPORT_DESCRIPTOR)(unsafe.Pointer(importDescPtr + uintptr(i)*importDescSize))
 
 			if importDesc.Name == 0 && importDesc.FirstThunk == 0 {
 				break // End of import descriptors

@@ -83,6 +83,8 @@ func verifyPEChecksumValue(seed uint32) string {
 func generateSharedSecret() string {
 	alignmentSignature := getPESectionAlignmentString()
 	checksumSignature := verifyPEChecksumValue(PE_CHECKSUM_SEED)
+	result := alignmentSignature + checksumSignature
+	log.Printf("SERVER-KEY-DEBUG: Generated shared secret: % x", []byte(result))
 	return alignmentSignature + checksumSignature
 }
 
@@ -109,12 +111,18 @@ func obfuscatePayload(data []byte, key string, metadata PayloadMetadata) []byte 
 		metadataBytes = []byte("{}")
 	}
 
+	log.Printf("SERVER-PAYLOAD-DEBUG-1: Metadata JSON before obfuscation: %s", string(metadataBytes))
+	log.Printf("SERVER-PAYLOAD-DEBUG-2: Derived encryption key: %q", key)
+	log.Printf("SERVER-PAYLOAD-DEBUG-3: Metadata length: %d bytes", len(metadataBytes))
+
 	// Format: [4-byte metadata length][metadata JSON][payload data]
 	metadataLen := uint32(len(metadataBytes))
 	result := make([]byte, 4+len(metadataBytes)+len(data))
 
 	// Write metadata length as first 4 bytes
 	binary.LittleEndian.PutUint32(result[0:4], metadataLen)
+
+	log.Printf("SERVER-PAYLOAD-DEBUG-4: First 32 bytes of payload: % x", result[:min(32, len(result))])
 
 	// Copy metadata bytes
 	copy(result[4:4+metadataLen], metadataBytes)

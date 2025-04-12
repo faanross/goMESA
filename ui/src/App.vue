@@ -13,6 +13,7 @@
     <nav>
       <router-link to="/">Dashboard</router-link>
       <router-link to="/agents">Agents</router-link>
+      <router-link to="/execute">Execute</router-link>
       <router-link to="/commands">Commands</router-link>
       <router-link to="/settings">Settings</router-link>
     </nav>

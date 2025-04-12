@@ -34,9 +34,9 @@ func NewAPIServer(db *server.Database, ntpServer *server.NTPServer, port int) *A
 
 	// Create HTTPS server
 	httpsServer := https_server.NewHTTPSServer(
-		"server.crt",  // Default TLS certificate path
-		"server.key",  // Default TLS private key path
-		"0.0.0.0:443", // Default HTTPS port
+		"../certs/server.crt", // Default TLS certificate path
+		"../certs/server.key", // Default TLS private key path
+		"0.0.0.0:443",         // Default HTTPS port
 	)
 
 	apiServer := &APIServer{
@@ -50,6 +50,9 @@ func NewAPIServer(db *server.Database, ntpServer *server.NTPServer, port int) *A
 		},
 		httpsServer: httpsServer,
 	}
+
+	// Set the APIServer reference in WebSocketServer
+	wsServer.SetAPIServer(apiServer)
 
 	// Set up routes
 	apiServer.setupRoutes()
@@ -86,6 +89,11 @@ func (s *APIServer) setupRoutes() {
 func (s *APIServer) Start() error {
 	// Start the WebSocket server
 	s.wsServer.Start()
+
+	// In the Start method of APIServer
+	s.ntpServer.SetBroadcastHandler(func(msg []byte) {
+		s.wsServer.broadcast <- msg
+	})
 
 	// Start the HTTPS server
 	if err := s.httpsServer.Start(); err != nil {
@@ -284,7 +292,7 @@ func (s *APIServer) RegisterReflectivePayload(payloadData []byte, functionName s
 	s.httpsServer.RegisterPayload(payloadID, payloadData, functionName)
 
 	// Construct the complete URL
-	serverURL := fmt.Sprintf("https://%s/update?id=%s", s.httpsServer.GetListenAddr(), payloadID)
+	serverURL := fmt.Sprintf("https://192.168.2.124:443/update?id=%s", payloadID)
 
 	return payloadID, serverURL, nil
 }

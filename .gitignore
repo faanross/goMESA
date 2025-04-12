@@ -15,6 +15,8 @@ bin/
 # Dependency directories
 vendor/
 
+certs/
+
 # Go workspace file
 go.work
 

