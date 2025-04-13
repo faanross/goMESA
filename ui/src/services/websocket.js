@@ -18,7 +18,7 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 2; // Limit reconnect attempts
 
 // Function to connect to the WebSocket server
-export function connectWebSocket(url = 'ws://localhost:8080/ws') {
+export function connectWebSocket(url = 'ws://64.23.212.29:8080/ws') {
     // Don't try to reconnect if we're already connecting or connected
     if (connectionState.value === 'connecting') {
         return;

