@@ -1,5 +1,9 @@
 # Binary files
 bin/
+server
+
+# Database files
+data/
 *.exe
 *.exe~
 *.dll
