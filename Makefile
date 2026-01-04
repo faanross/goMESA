@@ -7,8 +7,11 @@ AGENT_LINUX=linux-agent
 AGENT_WINDOWS=windows-agent.exe
 AGENT_MACOS=macos-agent
 
-# Set server IP for agents during compilation - change this to your C2 server's IP
-SERVER_IP=64.23.212.29
+# ============================================================================
+# IMPORTANT: Set this to your C2 server's IP address before building agents
+# This IP is embedded into agent binaries at compile time
+# ============================================================================
+SERVER_IP=CHANGE_ME
 
 all: clean build
 

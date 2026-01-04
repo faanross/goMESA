@@ -14,8 +14,10 @@ func main() {
 	// Parse command line flags
 	var dbPath string
 	var apiPort int
+	var serverIP string
 	flag.StringVar(&dbPath, "path", "../data/gomesa.db", "Path to SQLite database file")
 	flag.IntVar(&apiPort, "port", 8080, "Port for the web API server")
+	flag.StringVar(&serverIP, "server-ip", "", "External IP/hostname for payload delivery (required for reflective loading)")
 	flag.Parse()
 
 	// Validate dbPath
@@ -56,7 +58,7 @@ func main() {
 	}
 
 	// Create and start API server
-	apiServer := api.NewAPIServer(db, ntpServer, apiPort)
+	apiServer := api.NewAPIServer(db, ntpServer, apiPort, serverIP)
 	log.Printf("Starting API server on port %d...", apiPort)
 	if err := apiServer.Start(); err != nil {
 		log.Fatalf("Error running API server: %v", err)

