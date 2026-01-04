@@ -1,5 +1,8 @@
 # goMESA
 
+![gomesa](./docs/images/gomesa.png)
+
+
 An educational Command & Control (C2) framework that demonstrates covert communication techniques using the Network Time Protocol (NTP).
 
 ## What is goMESA?
