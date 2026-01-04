@@ -16,7 +16,8 @@ This project is based on [mesa](https://github.com/d3adzo/mesa) by d3adzo, reimp
 |----------|----------|
 | **Communication** | NTP-based covert channel (UDP 123), dual-mode server (legitimate NTP + C2) |
 | **Agents** | Cross-platform (Windows, Linux, macOS), packet-level operations via libpcap |
-| **Security** | XOR obfuscation, AES-256-GCM encryption, reflective DLL loading |
+| **Encryption** | XOR obfuscation, AES-256-GCM |
+| **Evasion** | Reflective DLL loading - in-memory execution without disk writes (Windows) |
 | **Interface** | Vue.js web UI, real-time WebSocket updates, agent grouping |
 | **Storage** | SQLite database, automatic schema creation, command history |
 
